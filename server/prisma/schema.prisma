@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -71,21 +72,34 @@ model OrbitalElementsArchive {
 }
 
 model ObserverProfile {
-  observerId              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("observer_id")
-  contactEmail            String               @map("contact_email")
-  trackingLocation        Unsupported("geography(Point,4326)") @map("tracking_location")
-  preferredAssetId        String?              @db.Uuid @map("preferred_asset_id")
-  minimumVisibilityAngle  Decimal              @default(10.0) @db.Decimal(5, 2) @map("minimum_visibility_angle")
-  createdAt               DateTime             @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt               DateTime             @updatedAt @db.Timestamptz(6) @map("updated_at")
-  preferredAsset          OrbitalAsset?        @relation("PreferredAsset", fields: [preferredAssetId], references: [assetId], onDelete: SetNull)
-  visibilityWindows       VisibilityWindow[]
-  trackedAssets           TrackedAsset[]
-  observationLogs         ObservationLog[]
-  interactionRecords      InteractionRecord[]
+  observerId             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("observer_id")
+  contactEmail           String      @map("contact_email")
+
+  latitude               Decimal     @db.Decimal(9,6)
+  longitude              Decimal     @db.Decimal(9,6)
+
+  preferredAssetId       String?     @db.Uuid @map("preferred_asset_id")
+  minimumVisibilityAngle Decimal     @default(10.0) @db.Decimal(5,2) @map("minimum_visibility_angle")
+
+  createdAt              DateTime    @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt              DateTime    @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  preferredAsset         OrbitalAsset? @relation(
+    "PreferredAsset",
+    fields: [preferredAssetId],
+    references: [assetId],
+    onDelete: SetNull
+  )
+
+  visibilityWindows      VisibilityWindow[]
+  trackedAssets          TrackedAsset[]
+  observationLogs        ObservationLog[]
+  interactionRecords     InteractionRecord[]
 
   @@index([contactEmail], map: "idx_observer_profiles_contact_email")
   @@index([preferredAssetId], map: "idx_observer_profiles_preferred_asset_id")
+  @@index([latitude, longitude], map: "idx_observer_profiles_coordinates")
+
   @@map("observer_profiles")
 }
 

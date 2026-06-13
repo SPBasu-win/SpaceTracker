@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgis/postgis:18-3.6
+
+    container_name: spacetrack-db
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: spacetrack
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+volumes:
+  postgres_data:
