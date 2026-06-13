@@ -7,6 +7,34 @@
     <title>client</title>
   </head>
   <body>
+    <script>
+      window.addEventListener('error', (event) => {
+        const errorDiv = document.createElement('div');
+        errorDiv.style.position = 'fixed';
+        errorDiv.style.top = '0';
+        errorDiv.style.left = '0';
+        errorDiv.style.width = '100vw';
+        errorDiv.style.background = 'red';
+        errorDiv.style.color = 'white';
+        errorDiv.style.padding = '20px';
+        errorDiv.style.zIndex = '999999';
+        errorDiv.innerHTML = `<h3>Error</h3><pre>${event.error ? event.error.stack : event.message}</pre>`;
+        document.body.appendChild(errorDiv);
+      });
+      window.addEventListener('unhandledrejection', (event) => {
+        const errorDiv = document.createElement('div');
+        errorDiv.style.position = 'fixed';
+        errorDiv.style.top = '0';
+        errorDiv.style.left = '0';
+        errorDiv.style.width = '100vw';
+        errorDiv.style.background = 'red';
+        errorDiv.style.color = 'white';
+        errorDiv.style.padding = '20px';
+        errorDiv.style.zIndex = '999999';
+        errorDiv.innerHTML = `<h3>Unhandled Promise Rejection</h3><pre>${event.reason ? event.reason.stack : event.reason}</pre>`;
+        document.body.appendChild(errorDiv);
+      });
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

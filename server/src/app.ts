@@ -12,8 +12,8 @@ app.use(rateLimit());
 app.use("/api", orbitalRouter);
 app.use("/api/ai", aiRoutes);
 
-app.use((error: Error & { statusCode?: number }, _req: Request, res: Response, _next: NextFunction) => {
+app.use((error: Error & { statusCode?: number }, req: Request, res: Response, _next: NextFunction) => {
   const status = error.statusCode ?? (error.message.includes("not found") ? 404 : 500);
-  if (status >= 500) console.error("request.failed", error);
+  console.error(`[SERVER ERROR] ${req.method} ${req.url} - Status: ${status}`, error);
   res.status(status).json({ error: error.message || "Internal server error" });
 });

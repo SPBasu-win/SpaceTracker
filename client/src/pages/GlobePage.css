@@ -1,0 +1,59 @@
+.map-style-controls {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: rgba(12, 20, 33, 0.88);
+  backdrop-filter: blur(10px);
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #1a2a3d);
+  z-index: 10;
+}
+
+.style-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #9eb0c5;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  justify-content: flex-start;
+  min-width: 120px;
+}
+
+.style-btn:hover {
+  background-color: rgba(122, 162, 247, 0.1);
+  color: #c0caf5;
+}
+
+.style-btn.active {
+  background-color: rgba(122, 162, 247, 0.2);
+  color: #7aa2f7;
+  border-color: rgba(122, 162, 247, 0.3);
+}
+
+.altitude-indicator {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  background: rgba(16, 37, 63, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  padding: 8px 16px;
+  border-radius: 20px;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  z-index: 10;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
