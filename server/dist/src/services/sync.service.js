@@ -1,4 +1,4 @@
-import { prisma } from "../lib/prisma";
+import { prisma } from "../lib/prisma.js";
 const baseUrl = "https://www.space-track.org";
 export async function syncCatalog() {
     const [metadataCount, tleCount] = await Promise.all([syncSatelliteMetadata(), syncTleHistory()]);

@@ -1,6 +1,6 @@
-import { prisma } from "../lib/prisma";
-import { deg2rad, normalizeLongitude, rad2deg, satellite } from "../lib/satellite";
-import { getLatestTleByCatalogNumber } from "./tle.service";
+import { prisma } from "../lib/prisma.js";
+import { deg2rad, normalizeLongitude, rad2deg, satellite } from "../lib/satellite.js";
+import { getLatestTleByCatalogNumber } from "./tle.service.js";
 export async function listAssets(filters) {
     return prisma.orbitalAsset.findMany({
         where: {
@@ -35,6 +35,55 @@ export async function getCurrentPosition(catalogNumber, at = new Date()) {
         velocityKmps,
         inclinationDeg: rad2deg(satrec.inclo),
         timestamp: at.toISOString(),
+    };
+}
+export async function getGlobeAssets(limit = 25_000, at = new Date()) {
+    const assets = await prisma.orbitalAsset.findMany({
+        where: { orbitalEpoch: { not: null } },
+        select: {
+            catalogNumber: true,
+            displayName: true,
+            assetClass: true,
+            operatorName: true,
+            originCountry: true,
+            updatedAt: true,
+            elementArchive: {
+                orderBy: { epochTimestamp: "desc" },
+                take: 1,
+                select: { elementLine1: true, elementLine2: true, epochTimestamp: true },
+            },
+        },
+        orderBy: { catalogNumber: "asc" },
+        take: Math.min(Math.max(limit, 1), 25_000),
+    });
+    const gmst = satellite.gstime(at);
+    return {
+        timestamp: at.toISOString(),
+        assets: assets.flatMap((asset) => {
+            const tle = asset.elementArchive[0];
+            if (!tle)
+                return [];
+            try {
+                const { position, velocity } = propagateTle(tle.elementLine1, tle.elementLine2, at);
+                const geo = satellite.eciToGeodetic(position, gmst);
+                return [{
+                        catalogNumber: asset.catalogNumber,
+                        name: asset.displayName,
+                        assetClass: asset.assetClass,
+                        operatorName: asset.operatorName,
+                        originCountry: asset.originCountry,
+                        latitude: satellite.degreesLat(geo.latitude),
+                        longitude: normalizeLongitude(satellite.degreesLong(geo.longitude)),
+                        altitudeKm: geo.height,
+                        velocityKmps: magnitude(velocity),
+                        updatedAt: asset.updatedAt.toISOString(),
+                        tleEpoch: tle.epochTimestamp.toISOString(),
+                    }];
+            }
+            catch {
+                return [];
+            }
+        }),
     };
 }
 export async function getCurrentVelocity(catalogNumber, at = new Date()) {

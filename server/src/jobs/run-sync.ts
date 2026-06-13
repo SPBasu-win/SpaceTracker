@@ -1,6 +1,6 @@
 import "dotenv/config";
-import { prisma } from "../lib/prisma";
-import { runSyncJob } from "./sync.job";
+import { prisma } from "../lib/prisma.js";
+import { runSyncJob } from "./sync.job.js";
 
 runSyncJob()
   .then(async (result) => {

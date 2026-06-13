@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response, Router } from "express";
 import {
   getAsset,
+  getGlobeAssets,
   getOverhead,
   getObservations,
   getPasses,
@@ -8,7 +9,7 @@ import {
   getVisibilityWindows,
   listAssets,
   runSync,
-} from "../controllers/orbital.controller";
+} from "../controllers/orbital.controller.js";
 
 export const orbitalRouter = Router();
 
@@ -18,6 +19,7 @@ const asyncHandler =
     Promise.resolve(handler(req, res, next)).catch(next);
 
 orbitalRouter.get("/assets", asyncHandler(listAssets));
+orbitalRouter.get("/globe/assets", asyncHandler(getGlobeAssets));
 orbitalRouter.get("/assets/:catalogNumber", asyncHandler(getAsset));
 orbitalRouter.get("/assets/:catalogNumber/position", asyncHandler(getPosition));
 orbitalRouter.get("/assets/:catalogNumber/passes", asyncHandler(getPasses));

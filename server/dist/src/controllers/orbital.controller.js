@@ -1,6 +1,6 @@
 import { AssetClass } from "@prisma/client";
-import * as orbitalService from "../services/orbital.service";
-import { runSyncJob } from "../jobs/sync.job";
+import * as orbitalService from "../services/orbital.service.js";
+import { runSyncJob } from "../jobs/sync.job.js";
 export async function listAssets(req, res) {
     const catalogNumber = optionalNumber(req.query.catalogNumber);
     const assetClass = optionalAssetClass(req.query.assetClass);
@@ -12,6 +12,9 @@ export async function getAsset(req, res) {
 }
 export async function getPosition(req, res) {
     res.json(await orbitalService.getCurrentPosition(requiredCatalogNumber(req)));
+}
+export async function getGlobeAssets(req, res) {
+    res.json(await orbitalService.getGlobeAssets(optionalNumber(req.query.limit) ?? 25_000));
 }
 export async function getPasses(req, res) {
     const latitude = requiredNumber(req.query.latitude, "latitude");

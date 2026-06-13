@@ -1,4 +1,4 @@
-import { prisma } from "../lib/prisma";
+import { prisma } from "../lib/prisma.js";
 export async function getLatestTleFromDatabase(catalogNumber) {
     const asset = await prisma.orbitalAsset.findUnique({
         where: { catalogNumber },
@@ -43,9 +43,20 @@ export async function fetchFallbackTleFromCelesTrak(catalogNumber) {
 }
 export async function getLatestTleByCatalogNumber(catalogNumber) {
     const databaseTle = await getLatestTleFromDatabase(catalogNumber);
-    if (databaseTle)
+    const maxAgeHours = Number(process.env.TLE_MAX_AGE_HOURS ?? 24);
+    const isFresh = databaseTle &&
+        Date.now() - databaseTle.epochTimestamp.getTime() < Math.max(maxAgeHours, 1) * 3_600_000;
+    if (isFresh)
         return databaseTle;
-    return fetchFallbackTleFromCelesTrak(catalogNumber);
+    try {
+        const fallback = await fetchFallbackTleFromCelesTrak(catalogNumber);
+        if (fallback)
+            return fallback;
+    }
+    catch (error) {
+        console.warn("tle.celestrak_failed", { catalogNumber, error });
+    }
+    return databaseTle;
 }
 function parseTleEpoch(line1) {
     const year = Number(line1.slice(18, 20));
