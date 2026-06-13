@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AssetClass {
+  COMMUNICATION
+  NAVIGATION
+  EARTH_OBSERVATION
+  WEATHER
+  MILITARY
+  SCIENTIFIC
+  CREWED
+  DEBRIS
+  OTHER
+
+  @@map("asset_class")
+}
+
+enum IlluminationState {
+  SUNLIT
+  PENUMBRA
+  ECLIPSED
+  UNKNOWN
+
+  @@map("illumination_state")
+}
+
+model OrbitalAsset {
+  assetId                 String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("asset_id")
+  catalogNumber           Int                      @unique @map("catalog_number")
+  internationalDesignator String?                  @map("international_designator")
+  displayName             String?                  @map("display_name")
+  assetClass              AssetClass               @map("asset_class")
+  operatorName            String?                  @map("operator_name")
+  originCountry           String?                  @map("origin_country")
+  launchDate              DateTime?                @db.Date @map("launch_date")
+  decayDate               DateTime?                @db.Date @map("decay_date")
+  orbitalEpoch            DateTime?                @db.Timestamptz(6) @map("orbital_epoch")
+  createdAt               DateTime                 @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt               DateTime                 @updatedAt @db.Timestamptz(6) @map("updated_at")
+  elementArchive          OrbitalElementsArchive[]
+  preferredByObservers    ObserverProfile[]        @relation("PreferredAsset")
+  visibilityWindows       VisibilityWindow[]
+  trackedByObservers      TrackedAsset[]
+  observationLogs         ObservationLog[]
+
+  @@index([catalogNumber], map: "idx_orbital_assets_catalog_number")
+  @@index([assetClass], map: "idx_orbital_assets_asset_class")
+  @@index([operatorName], map: "idx_orbital_assets_operator_name")
+  @@index([updatedAt], map: "idx_orbital_assets_updated_at")
+  @@map("orbital_assets")
+}
+
+model OrbitalElementsArchive {
+  archiveId      String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("archive_id")
+  assetId        String       @db.Uuid @map("asset_id")
+  elementLine1   String       @db.VarChar(69) @map("element_line_1")
+  elementLine2   String       @db.VarChar(69) @map("element_line_2")
+  epochTimestamp DateTime     @db.Timestamptz(6) @map("epoch_timestamp")
+  recordedAt     DateTime     @default(now()) @db.Timestamptz(6) @map("recorded_at")
+  asset          OrbitalAsset @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
+
+  @@unique([assetId, epochTimestamp], map: "uq_orbital_elements_archive_asset_epoch")
+  @@index([assetId, epochTimestamp], map: "idx_orbital_elements_archive_asset_epoch")
+  @@map("orbital_elements_archive")
+}
+
+model ObserverProfile {
+  observerId              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("observer_id")
+  contactEmail            String               @map("contact_email")
+  trackingLocation        Unsupported("geography(Point,4326)") @map("tracking_location")
+  preferredAssetId        String?              @db.Uuid @map("preferred_asset_id")
+  minimumVisibilityAngle  Decimal              @default(10.0) @db.Decimal(5, 2) @map("minimum_visibility_angle")
+  createdAt               DateTime             @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt               DateTime             @updatedAt @db.Timestamptz(6) @map("updated_at")
+  preferredAsset          OrbitalAsset?        @relation("PreferredAsset", fields: [preferredAssetId], references: [assetId], onDelete: SetNull)
+  visibilityWindows       VisibilityWindow[]
+  trackedAssets           TrackedAsset[]
+  observationLogs         ObservationLog[]
+  interactionRecords      InteractionRecord[]
+
+  @@index([contactEmail], map: "idx_observer_profiles_contact_email")
+  @@index([preferredAssetId], map: "idx_observer_profiles_preferred_asset_id")
+  @@map("observer_profiles")
+}
+
+model VisibilityWindow {
+  windowId          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("window_id")
+  observerId        String            @db.Uuid @map("observer_id")
+  assetId           String            @db.Uuid @map("asset_id")
+  acquisitionTime   DateTime          @db.Timestamptz(6) @map("acquisition_time")
+  lossTime          DateTime          @db.Timestamptz(6) @map("loss_time")
+  peakElevation     Decimal           @db.Decimal(5, 2) @map("peak_elevation")
+  approachSector    String?           @db.VarChar(32) @map("approach_sector")
+  illuminationState IlluminationState @default(UNKNOWN) @map("illumination_state")
+  visibilityRating  Int               @map("visibility_rating")
+  notificationSent  Boolean           @default(false) @map("notification_sent")
+  createdAt         DateTime          @default(now()) @db.Timestamptz(6) @map("created_at")
+  observer          ObserverProfile   @relation(fields: [observerId], references: [observerId], onDelete: Cascade)
+  asset             OrbitalAsset      @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
+
+  @@index([observerId, acquisitionTime], map: "idx_visibility_windows_observer_acquisition")
+  @@index([assetId, acquisitionTime], map: "idx_visibility_windows_asset_acquisition")
+  @@index([notificationSent], map: "idx_visibility_windows_notification_sent")
+  @@map("visibility_windows")
+}
+
+model TrackedAsset {
+  trackingId String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("tracking_id")
+  observerId String          @db.Uuid @map("observer_id")
+  assetId    String          @db.Uuid @map("asset_id")
+  createdAt  DateTime        @default(now()) @db.Timestamptz(6) @map("created_at")
+  observer   ObserverProfile @relation(fields: [observerId], references: [observerId], onDelete: Cascade)
+  asset      OrbitalAsset    @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
+
+  @@unique([observerId, assetId], map: "uq_tracked_assets_observer_asset")
+  @@index([observerId], map: "idx_tracked_assets_observer_id")
+  @@index([assetId], map: "idx_tracked_assets_asset_id")
+  @@map("tracked_assets")
+}
+
+model ObservationLog {
+  logId                   String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("log_id")
+  observerId              String          @db.Uuid @map("observer_id")
+  assetId                 String          @db.Uuid @map("asset_id")
+  observationLocation     Unsupported("geography(Point,4326)") @map("observation_location")
+  observationTime         DateTime        @db.Timestamptz(6) @map("observation_time")
+  trackingDurationSeconds Int             @map("tracking_duration_seconds")
+  signalQuality           Int             @map("signal_quality")
+  remarks                 String?         @db.Text
+  createdAt               DateTime        @default(now()) @db.Timestamptz(6) @map("created_at")
+  observer                ObserverProfile @relation(fields: [observerId], references: [observerId], onDelete: Cascade)
+  asset                   OrbitalAsset    @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
+
+  @@index([observerId, observationTime], map: "idx_observation_logs_observer_time")
+  @@index([assetId, observationTime], map: "idx_observation_logs_asset_time")
+  @@map("observation_logs")
+}
+
+model InteractionRecord {
+  recordId            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("record_id")
+  observerId          String          @db.Uuid @map("observer_id")
+  conversationPayload Json            @default("{}") @map("conversation_payload")
+  sessionContext      Json            @default("{}") @map("session_context")
+  createdAt           DateTime        @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt           DateTime        @updatedAt @db.Timestamptz(6) @map("updated_at")
+  observer            ObserverProfile @relation(fields: [observerId], references: [observerId], onDelete: Cascade)
+
+  @@index([observerId, createdAt], map: "idx_interaction_records_observer_created")
+  @@map("interaction_records")
+}
