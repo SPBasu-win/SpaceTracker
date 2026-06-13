@@ -84,12 +84,7 @@ model ObserverProfile {
   createdAt              DateTime    @default(now()) @db.Timestamptz(6) @map("created_at")
   updatedAt              DateTime    @updatedAt @db.Timestamptz(6) @map("updated_at")
 
-  preferredAsset         OrbitalAsset? @relation(
-    "PreferredAsset",
-    fields: [preferredAssetId],
-    references: [assetId],
-    onDelete: SetNull
-  )
+  preferredAsset         OrbitalAsset? @relation("PreferredAsset", fields: [preferredAssetId], references: [assetId], onDelete: SetNull)
 
   visibilityWindows      VisibilityWindow[]
   trackedAssets          TrackedAsset[]

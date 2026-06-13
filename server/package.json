@@ -2,17 +2,22 @@
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
+    "build": "tsc",
+    "dev": "nodemon --watch . --ext ts,json --exec tsx server.ts",
+    "start": "tsc && node dist/server.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts",
+    "sync": "tsx src/jobs/run-sync.ts",
     "test": "echo \"No automated server tests configured\" && exit 0"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
     "@prisma/client": "^6.19.1",
     "cors": "^2.8.6",
@@ -21,8 +26,16 @@
     "satellite.js": "^7.0.1"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/node": "^24.10.1",
     "nodemon": "^3.1.14",
-    "prisma": "^6.19.1"
+    "prisma": "^6.19.1",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.22.4",
+    "typescript": "^5.9.3"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }
