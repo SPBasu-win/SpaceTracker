@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { BarChart3, Crosshair, Globe2, List, Settings, Star } from 'lucide-react'
+import { BarChart3, Crosshair, Globe2, List, Settings, Star, MessageSquare } from 'lucide-react'
+import { ChatPanel } from '../components/ChatPanel'
 
 const links = [
   { to: '/dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -10,6 +12,8 @@ const links = [
 ]
 
 export function AppShell() {
+  const [isChatOpen, setIsChatOpen] = useState(false)
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -29,6 +33,16 @@ export function AppShell() {
         </header>
         <section className="content"><Outlet /></section>
       </main>
+      
+      <button 
+        className={`chat-toggle-btn ${isChatOpen ? 'hidden' : ''}`}
+        onClick={() => setIsChatOpen(true)}
+        title="Open AI Assistant"
+      >
+        <MessageSquare size={24} />
+      </button>
+
+      <ChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </div>
   )
 }
