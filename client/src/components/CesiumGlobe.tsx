@@ -4,8 +4,6 @@ import { getGlobeAssets } from '../api/orbitalApi'
 import { useGlobeStore } from '../stores/globeStore'
 import type { GlobeAsset } from '../types/orbital'
 
-Cesium.Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_TOKEN ?? ''
-
 type EntityMap = Map<number, Cesium.Entity>
 
 export function CesiumGlobe() {
@@ -28,8 +26,10 @@ export function CesiumGlobe() {
       fullscreenButton: false,
       infoBox: false,
       selectionIndicator: false,
+      baseLayer: false,
     })
     viewer.scene.globe.enableLighting = true
+    viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#10253f')
     viewer.scene.postProcessStages.fxaa.enabled = true
     viewerRef.current = viewer
 
