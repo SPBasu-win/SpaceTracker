@@ -25,6 +25,7 @@ export function CesiumGlobe() {
   const selected = useGlobeStore((state) => state.selected)
   const mapStyle = useGlobeStore((state) => state.mapStyle)
   const targetCatalogNumber = useGlobeStore((state) => state.targetCatalogNumber)
+  const flyToTrigger = useGlobeStore((state) => state.flyToTrigger)
   const filterCategory = useGlobeStore((state) => state.filterCategory)
   
   const prevSelectedRef = useRef<number | null>(null)
@@ -151,11 +152,14 @@ export function CesiumGlobe() {
       if (Cesium.defined(picked) && picked.primitive && picked.id && (picked.id as any).asset) {
         const asset = (picked.id as any).asset as GlobeAsset
         setSelected(asset)
-        const position = Cesium.Cartesian3.fromDegrees(asset.longitude, asset.latitude, asset.altitudeKm * 1000)
-        viewer.camera.flyToBoundingSphere(new Cesium.BoundingSphere(position, 1000), {
-          duration: 0.9,
-          offset: new Cesium.HeadingPitchRange(0, -0.7, 1_400_000)
-        })
+        if (trackingEntityRef.current) {
+          viewer.flyTo(trackingEntityRef.current, {
+            duration: 0.9,
+            offset: new Cesium.HeadingPitchRange(0, -0.7, 1_400_000)
+          }).then(() => {
+            viewer.trackedEntity = trackingEntityRef.current
+          })
+        }
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
 
@@ -223,12 +227,6 @@ export function CesiumGlobe() {
         Cesium.Cartesian3.multiplyByScalar(data.velocity, dt, scratchVelocity)
         Cesium.Cartesian3.add(data.basePosition, scratchVelocity, scratchPosition)
         b.position = scratchPosition
-        
-        // Update tracking entity position if it's the selected one
-        const sel = useGlobeStore.getState().selected
-        if (sel && sel.catalogNumber === data.asset.catalogNumber && trackingEntityRef.current) {
-          (trackingEntityRef.current.position as Cesium.ConstantPositionProperty).setValue(scratchPosition)
-        }
       }
     }
     viewer.scene.preUpdate.addEventListener(preUpdateListener)
@@ -419,7 +417,12 @@ export function CesiumGlobe() {
 
     // Initialize invisible tracking entity
     trackingEntityRef.current = viewer.entities.add({
-      position: new Cesium.ConstantPositionProperty(Cesium.Cartesian3.ZERO),
+      position: new Cesium.CallbackProperty(() => {
+        const sel = useGlobeStore.getState().selected
+        if (!sel || !billboardMapRef.current) return undefined
+        const b = billboardMapRef.current.get(sel.catalogNumber)
+        return b ? b.position : undefined
+      }, false),
       point: { show: false }
     })
 
@@ -434,7 +437,12 @@ export function CesiumGlobe() {
     const flyToAsset = (asset: GlobeAsset) => {
       setSelected(asset)
       if (viewerRef.current && trackingEntityRef.current) {
-        viewerRef.current.trackedEntity = trackingEntityRef.current
+        viewerRef.current.flyTo(trackingEntityRef.current, {
+          duration: 0.9,
+          offset: new Cesium.HeadingPitchRange(0, -0.7, 1_400_000)
+        }).then(() => {
+          if (viewerRef.current) viewerRef.current.trackedEntity = trackingEntityRef.current
+        })
       }
     }
 
@@ -461,7 +469,7 @@ export function CesiumGlobe() {
         }
       })
     }
-  }, [targetCatalogNumber, setSelected])
+  }, [targetCatalogNumber, flyToTrigger, setSelected])
 
   useEffect(() => {
     if (!billboardMapRef.current) return

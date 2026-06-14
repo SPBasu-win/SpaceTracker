@@ -149,7 +149,10 @@ export const countSatellitesTool: SpaceTool = {
     });
     return {
       count: results.length,
-      sampleNames: results.slice(0, 5).map(s => s.displayName)
+      sampleSatellites: results.slice(0, 10).map(s => ({
+        name: s.displayName,
+        catalogNumber: s.catalogNumber
+      }))
     };
   }
 };

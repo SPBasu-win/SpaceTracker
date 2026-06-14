@@ -5,7 +5,7 @@ import { ChatMessage, ChatResponse, ToolDefinition } from '../types.js';
 export class GoogleProvider extends BaseProvider {
   private client: GoogleGenerativeAI;
 
-  constructor(apiKey: string, model: string = 'gemini-2.5-flash') {
+  constructor(apiKey: string, model: string = 'gemini-3.5-flash') {
     super(apiKey, model);
     this.client = new GoogleGenerativeAI(this.apiKey);
   }

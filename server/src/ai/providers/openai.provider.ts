@@ -31,7 +31,16 @@ export class OpenAIProvider extends BaseProvider {
       const formatted: any = { role: msg.role, content: msg.content };
       if (msg.name) formatted.name = msg.name;
       if (msg.tool_call_id) formatted.tool_call_id = msg.tool_call_id;
-      if (msg.tool_calls) formatted.tool_calls = msg.tool_calls;
+      if (msg.tool_calls) {
+        formatted.tool_calls = msg.tool_calls.map((tc: any) => ({
+          id: tc.id,
+          type: 'function',
+          function: {
+            name: tc.name,
+            arguments: typeof tc.arguments === 'string' ? tc.arguments : JSON.stringify(tc.arguments)
+          }
+        }));
+      }
       return formatted;
     });
 

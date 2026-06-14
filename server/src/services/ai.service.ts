@@ -77,6 +77,19 @@ export class AIService {
 
       const response = await this.router.chat(messages, this.toolRegistry.getDefinitions(), { maxTokens: 1000, enableWebSearch: true });
 
+      if (response.toolCalls) {
+        for (const tc of response.toolCalls) {
+          // Auto-fix hallucinated LLaMA tool names like: get_satellite_position({"catalogNumber": 25544})
+          const match = tc.name.match(/^([a-zA-Z0-9_]+)\((.*)\)$/);
+          if (match) {
+            tc.name = match[1];
+            if (!tc.arguments || tc.arguments === '' || tc.arguments === '{}') {
+              tc.arguments = match[2];
+            }
+          }
+        }
+      }
+
       // Save assistant message to memory
       const assistantMsg: ChatMessage = { 
         role: 'assistant', 
