@@ -18,10 +18,14 @@ export class GroqProvider extends BaseProvider {
     return true; // Groq supports OpenAI-compatible tool calling
   }
 
+  supportsNativeWebSearch(): boolean {
+    return true;
+  }
+
   async chat(
     messages: ChatMessage[],
     tools?: ToolDefinition[],
-    options?: { modelId?: string; maxTokens?: number }
+    options?: { modelId?: string; maxTokens?: number; enableWebSearch?: boolean }
   ): Promise<ChatResponse> {
     const formattedMessages = messages.map(msg => {
       const formatted: any = { role: msg.role, content: msg.content };
@@ -32,7 +36,7 @@ export class GroqProvider extends BaseProvider {
     });
 
     const requestBody: Groq.Chat.ChatCompletionCreateParamsNonStreaming = {
-      model: options?.modelId || this.defaultModel,
+      model: options?.enableWebSearch ? 'compound-beta' : (options?.modelId || this.defaultModel),
       messages: formattedMessages as any,
       max_tokens: options?.maxTokens,
     };
@@ -46,6 +50,13 @@ export class GroqProvider extends BaseProvider {
           parameters: tool.parameters,
         },
       }));
+    }
+
+    if (options?.enableWebSearch) {
+      requestBody.tools = requestBody.tools || [];
+      requestBody.tools.push({
+        type: 'web_search' as any
+      });
     }
 
     const response = await this.client.chat.completions.create(requestBody);

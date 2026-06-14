@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { sendChatMessage } from '../api/aiApi'
 import { useGlobeStore } from './globeStore'
+import { useObserverStore } from './observerStore'
 
 export interface ChatMessage {
   id: string
@@ -72,7 +73,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     })
     
     try {
-      const response = await sendChatMessage(text, sessionId)
+      const { latitude, longitude, locationName } = useObserverStore.getState()
+      const location = latitude && longitude ? { latitude, longitude, locationName } : undefined
+      
+      const response = await sendChatMessage(text, sessionId, location)
       
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),

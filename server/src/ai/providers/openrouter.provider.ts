@@ -25,10 +25,14 @@ export class OpenRouterProvider extends BaseProvider {
     return true;
   }
 
+  supportsNativeWebSearch(): boolean {
+    return true;
+  }
+
   async chat(
     messages: ChatMessage[],
     tools?: ToolDefinition[],
-    options?: { modelId?: string; maxTokens?: number }
+    options?: { modelId?: string; maxTokens?: number; enableWebSearch?: boolean }
   ): Promise<ChatResponse> {
     const formattedMessages = messages.map(msg => {
       const formatted: any = { role: msg.role, content: msg.content };
@@ -53,6 +57,13 @@ export class OpenRouterProvider extends BaseProvider {
           parameters: tool.parameters,
         },
       }));
+    }
+
+    if (options?.enableWebSearch) {
+      requestBody.tools = requestBody.tools || [];
+      requestBody.tools.push({
+        type: 'openrouter:web_search' as any
+      });
     }
 
     const response = await this.client.chat.completions.create(requestBody);

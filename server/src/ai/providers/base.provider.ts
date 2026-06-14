@@ -16,13 +16,20 @@ export abstract class BaseProvider {
   abstract chat(
     messages: ChatMessage[],
     tools?: ToolDefinition[],
-    options?: { modelId?: string; maxTokens?: number }
+    options?: { modelId?: string; maxTokens?: number; enableWebSearch?: boolean }
   ): Promise<ChatResponse>;
 
   /**
    * Check if this provider supports tool calling
    */
   abstract supportsToolCalling(): boolean;
+
+  /**
+   * Check if this provider supports native web search
+   */
+  supportsNativeWebSearch(): boolean {
+    return false;
+  }
 
   /**
    * Get the current model ID

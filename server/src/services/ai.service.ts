@@ -1,5 +1,5 @@
 import { AIRouter } from '../ai/ai-router.js';
-import { SYSTEM_PROMPT } from '../ai/system-prompt.js';
+import { getSystemPrompt } from '../ai/system-prompt.js';
 import { ToolRegistry } from '../ai/tools/tool-registry.js';
 import { chatMemory } from './chat-memory.js';
 import { ChatMessage, GlobeAction } from '../ai/types.js';
@@ -11,6 +11,7 @@ import {
   getSatelliteInfoTool,
   countSatellitesTool
 } from '../ai/tools/orbital-tools.js';
+import { geocodeLocationTool } from '../ai/tools/web-tools.js';
 
 export class AIService {
   private router: AIRouter;
@@ -27,6 +28,7 @@ export class AIService {
     this.toolRegistry.register(getOverheadSatellitesTool);
     this.toolRegistry.register(getSatelliteInfoTool);
     this.toolRegistry.register(countSatellitesTool);
+    this.toolRegistry.register(geocodeLocationTool);
   }
 
   public getHealth() {
@@ -38,7 +40,7 @@ export class AIService {
     };
   }
 
-  public async chat(sessionId: string, userMessage: string) {
+  public async chat(sessionId: string, userMessage: string, location?: { latitude: number; longitude: number; locationName?: string | null }) {
     if (userMessage.length > 1000) {
       throw new Error('Message too long (max 1000 chars)');
     }
@@ -61,7 +63,7 @@ export class AIService {
 
     // Construct full messages array with system prompt
     const messages: ChatMessage[] = [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: getSystemPrompt(location) },
       ...history
     ];
 
@@ -73,7 +75,7 @@ export class AIService {
     while (loopCount < MAX_TOOL_LOOPS) {
       loopCount++;
 
-      const response = await this.router.chat(messages, this.toolRegistry.getDefinitions(), { maxTokens: 1000 });
+      const response = await this.router.chat(messages, this.toolRegistry.getDefinitions(), { maxTokens: 1000, enableWebSearch: true });
 
       // Save assistant message to memory
       const assistantMsg: ChatMessage = { 

@@ -18,10 +18,14 @@ export class AnthropicProvider extends BaseProvider {
     return true;
   }
 
+  supportsNativeWebSearch(): boolean {
+    return true;
+  }
+
   async chat(
     messages: ChatMessage[],
     tools?: ToolDefinition[],
-    options?: { modelId?: string; maxTokens?: number }
+    options?: { modelId?: string; maxTokens?: number; enableWebSearch?: boolean }
   ): Promise<ChatResponse> {
     // Anthropic extracts system prompts from the messages array
     const systemMessages = messages.filter(m => m.role === 'system');
@@ -45,7 +49,7 @@ export class AnthropicProvider extends BaseProvider {
           ]
         });
       } else if (msg.role === 'assistant' && msg.tool_calls) {
-        const content: Anthropic.ContentBlock[] = [];
+        const content: any[] = [];
         if (msg.content) {
           content.push({ type: 'text', text: msg.content });
         }
@@ -76,6 +80,14 @@ export class AnthropicProvider extends BaseProvider {
         description: tool.description,
         input_schema: tool.parameters as any,
       }));
+    }
+
+    if (options?.enableWebSearch) {
+      requestBody.tools = requestBody.tools || [];
+      requestBody.tools.push({
+        type: "web_search_20260209",
+        name: "web_search",
+      } as any);
     }
 
     const response = await this.client.messages.create(requestBody);

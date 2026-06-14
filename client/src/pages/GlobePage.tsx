@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Star, Map as MapIcon, Image as ImageIcon, Box, Maximize2, Minimize2, MousePointer2, Hand, Search, X } from 'lucide-react'
 import { CesiumGlobe } from '../components/CesiumGlobe'
+import { LocationPrompt } from '../components/LocationPrompt'
 import { useGlobeStore } from '../stores/globeStore'
 import { useTrackingStore } from '../stores/trackingStore'
 import { useChatStore } from '../stores/chatStore'
@@ -22,6 +23,7 @@ export function GlobePage() {
   return (
     <div className="globe-page">
       <CesiumGlobe />
+      <LocationPrompt />
 
       {/* Loading Progress Bar */}
       {isLoading && (

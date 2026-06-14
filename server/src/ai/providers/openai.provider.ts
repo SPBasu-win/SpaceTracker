@@ -18,10 +18,14 @@ export class OpenAIProvider extends BaseProvider {
     return true;
   }
 
+  supportsNativeWebSearch(): boolean {
+    return true;
+  }
+
   async chat(
     messages: ChatMessage[],
     tools?: ToolDefinition[],
-    options?: { modelId?: string; maxTokens?: number }
+    options?: { modelId?: string; maxTokens?: number; enableWebSearch?: boolean }
   ): Promise<ChatResponse> {
     const formattedMessages = messages.map(msg => {
       const formatted: any = { role: msg.role, content: msg.content };
@@ -32,7 +36,7 @@ export class OpenAIProvider extends BaseProvider {
     });
 
     const requestBody: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
-      model: options?.modelId || this.defaultModel,
+      model: options?.enableWebSearch ? 'gpt-4o-mini-search-preview' : (options?.modelId || this.defaultModel),
       messages: formattedMessages,
       max_tokens: options?.maxTokens,
     };

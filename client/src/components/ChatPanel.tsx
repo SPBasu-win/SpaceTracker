@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useChatStore } from '../stores/chatStore'
 import { useGlobeStore } from '../stores/globeStore'
-import { Send, X, Bot, User, Orbit, AlertCircle, RefreshCw, MessageSquare } from 'lucide-react'
+import { useObserverStore } from '../stores/observerStore'
+import { Send, X, Bot, User, Orbit, AlertCircle, RefreshCw, MessageSquare, MapPin } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import './ChatPanel.css'
@@ -19,6 +20,7 @@ const SUGGESTED_QUERIES = [
 export const ChatPanel: React.FC = () => {
   const { messages, isLoading, error, turnsRemaining, sendMessage, clearChat, isOpen, setIsOpen, cooldownRemaining } = useChatStore()
   const setTargetCatalogNumber = useGlobeStore((state) => state.setTargetCatalogNumber)
+  const { locationName } = useObserverStore()
   const [inputText, setInputText] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -55,7 +57,13 @@ export const ChatPanel: React.FC = () => {
             <Orbit className="chat-title-icon" />
             <h3>SpaceTracker AI</h3>
           </div>
-          <div className="chat-header-actions">
+          <div className="chat-header-actions" style={{ display: 'flex', alignItems: 'center' }}>
+            {locationName && (
+              <div className="location-badge" title="Using location for AI context" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#7aa2f7', background: 'rgba(122, 162, 247, 0.1)', padding: '4px 8px', borderRadius: '12px', marginRight: '8px' }}>
+                <MapPin size={12} />
+                <span style={{ maxWidth: '100px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{locationName.split(',')[0]}</span>
+              </div>
+            )}
             {messages.length > 0 && (
               <button className="icon-button" onClick={clearChat} title="Clear Chat">
                 <RefreshCw size={18} />

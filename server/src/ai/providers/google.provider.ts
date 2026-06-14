@@ -18,10 +18,14 @@ export class GoogleProvider extends BaseProvider {
     return true;
   }
 
+  supportsNativeWebSearch(): boolean {
+    return true;
+  }
+
   async chat(
     messages: ChatMessage[],
     tools?: ToolDefinition[],
-    options?: { modelId?: string; maxTokens?: number }
+    options?: { modelId?: string; maxTokens?: number; enableWebSearch?: boolean }
   ): Promise<ChatResponse> {
     if (Date.now() < this.cooldownUntil) {
       const remainingSeconds = Math.ceil((this.cooldownUntil - Date.now()) / 1000);
@@ -34,13 +38,21 @@ export class GoogleProvider extends BaseProvider {
     const systemMessages = messages.filter(m => m.role === 'system');
     const systemInstruction = systemMessages.length > 0 ? systemMessages.map(m => m.content).join('\n') : undefined;
 
-    const geminiTools: Tool[] | undefined = tools && tools.length > 0 ? [{
+    let geminiTools: Tool[] | undefined = tools && tools.length > 0 ? [{
       functionDeclarations: tools.map(tool => ({
         name: tool.name,
         description: tool.description,
         parameters: tool.parameters as any,
       }))
     }] : undefined;
+
+    if (options?.enableWebSearch) {
+      if (!geminiTools) {
+        geminiTools = [{ googleSearch: {} } as any];
+      } else {
+        geminiTools.push({ googleSearch: {} } as any);
+      }
+    }
 
     const model = this.client.getGenerativeModel({
       model: options?.modelId || this.defaultModel,

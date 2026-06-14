@@ -5,7 +5,7 @@ import { randomUUID } from 'crypto';
 
 export async function chat(req: Request, res: Response) {
   try {
-    const { message } = req.body;
+    const { message, latitude, longitude, locationName } = req.body;
     let { sessionId } = req.body;
 
     if (!message || typeof message !== 'string') {
@@ -16,7 +16,8 @@ export async function chat(req: Request, res: Response) {
       sessionId = randomUUID();
     }
 
-    const response = await aiService.chat(sessionId, message);
+    const location = latitude && longitude ? { latitude, longitude, locationName } : undefined;
+    const response = await aiService.chat(sessionId, message, location);
     return res.json(response);
 
   } catch (error: any) {
@@ -45,4 +46,51 @@ export async function clearSession(req: Request, res: Response) {
 
 export async function getHealth(req: Request, res: Response) {
   return res.json(aiService.getHealth());
+}
+
+export async function geocode(req: Request, res: Response) {
+  try {
+    const { query } = req.body;
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({ error: 'Query is required and must be a string' });
+    }
+    
+    let data: any;
+    const headers = { 'User-Agent': 'SpaceTrackerAI/1.0' };
+    
+    try {
+      const axiosModule = await import('axios');
+      const axios = axiosModule.default || axiosModule;
+      const response = await axios.get('https://nominatim.openstreetmap.org/search', {
+        params: { q: query, format: 'json', limit: 1 },
+        headers
+      });
+      data = response.data;
+    } catch (importError: any) {
+      if (importError.code === 'ERR_MODULE_NOT_FOUND' || importError.message?.includes('Cannot find module')) {
+        const url = new URL('https://nominatim.openstreetmap.org/search');
+        url.searchParams.append('q', query);
+        url.searchParams.append('format', 'json');
+        url.searchParams.append('limit', '1');
+        
+        const response = await fetch(url.toString(), { headers });
+        data = await response.json();
+      } else {
+        throw importError;
+      }
+    }
+    
+    if (data && data.length > 0) {
+      const result = data[0];
+      return res.json({
+        latitude: parseFloat(result.lat),
+        longitude: parseFloat(result.lon),
+        displayName: result.display_name
+      });
+    }
+    return res.status(404).json({ error: 'Location not found' });
+  } catch (error: any) {
+    console.error('Geocode Error:', error);
+    return res.status(500).json({ error: 'Failed to geocode location' });
+  }
 }

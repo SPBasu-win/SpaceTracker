@@ -51,7 +51,7 @@ export class AIRouter {
   async chat(
     messages: ChatMessage[],
     tools?: ToolDefinition[],
-    options?: { maxTokens?: number }
+    options?: { maxTokens?: number; enableWebSearch?: boolean }
   ): Promise<ChatResponse> {
     if (this.providers.length === 0) {
       throw new Error('No AI providers configured.');

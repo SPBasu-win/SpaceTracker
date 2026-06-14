@@ -20,13 +20,24 @@ export interface HealthResponse {
   status: string
 }
 
-export async function sendChatMessage(message: string, sessionId: string): Promise<ChatResponse> {
+export async function sendChatMessage(message: string, sessionId: string, location?: { latitude: number; longitude: number; locationName?: string | null }): Promise<ChatResponse> {
   // Use timeout of 60s for AI requests since they can take a while with tool calls
-  const { data } = await apiClient.post<ChatResponse>('/ai/chat', { message, sessionId }, { timeout: 60000 })
+  const payload: any = { message, sessionId }
+  if (location) {
+    payload.latitude = location.latitude
+    payload.longitude = location.longitude
+    payload.locationName = location.locationName
+  }
+  const { data } = await apiClient.post<ChatResponse>('/ai/chat', payload, { timeout: 60000 })
   return data
 }
 
 export async function checkAiHealth(): Promise<HealthResponse> {
   const { data } = await apiClient.get<HealthResponse>('/ai/health')
+  return data
+}
+
+export async function geocodeLocation(query: string): Promise<{ latitude: number; longitude: number; displayName: string }> {
+  const { data } = await apiClient.post('/ai/geocode', { query })
   return data
 }
