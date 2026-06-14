@@ -23,6 +23,14 @@ export class GoogleProvider extends BaseProvider {
     tools?: ToolDefinition[],
     options?: { modelId?: string; maxTokens?: number }
   ): Promise<ChatResponse> {
+    if (Date.now() < this.cooldownUntil) {
+      const remainingSeconds = Math.ceil((this.cooldownUntil - Date.now()) / 1000);
+      const e = new Error(`AI Rate Limited: Please wait ${remainingSeconds} seconds.`);
+      (e as any).status = 429;
+      (e as any).retryAfter = remainingSeconds;
+      throw e;
+    }
+
     const systemMessages = messages.filter(m => m.role === 'system');
     const systemInstruction = systemMessages.length > 0 ? systemMessages.map(m => m.content).join('\n') : undefined;
 
@@ -76,12 +84,45 @@ export class GoogleProvider extends BaseProvider {
         };
       });
 
-    const result = await model.generateContent({
-      contents: formattedMessages as any,
-      generationConfig: {
-        maxOutputTokens: options?.maxTokens,
+    let result: any;
+    let retries = 2;
+    while (retries >= 0) {
+      try {
+        result = await model.generateContent({
+          contents: formattedMessages as any,
+          generationConfig: {
+            maxOutputTokens: options?.maxTokens,
+          }
+        });
+        break;
+      } catch (error: any) {
+        if (error.status === 429 && retries > 0) {
+          retries--;
+          let waitTime = 5000; // default 5s
+          if (error.errorDetails && Array.isArray(error.errorDetails)) {
+            const retryInfo = error.errorDetails.find((d: any) => d['@type'] === 'type.googleapis.com/google.rpc.RetryInfo');
+            if (retryInfo && retryInfo.retryDelay) {
+              const seconds = parseInt(retryInfo.retryDelay.replace('s', ''));
+              if (!isNaN(seconds)) waitTime = seconds * 1000;
+            }
+          }
+          
+          this.cooldownUntil = Date.now() + waitTime;
+          
+          if (waitTime > 10000) {
+            const e = new Error(`AI Rate Limited: Please wait ${Math.ceil(waitTime / 1000)} seconds.`);
+            (e as any).status = 429;
+            (e as any).retryAfter = Math.ceil(waitTime / 1000);
+            throw e;
+          }
+
+          console.warn(`[GoogleProvider] 429 Rate Limited. Waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        } else {
+          throw error;
+        }
       }
-    });
+    }
 
     const response = result.response;
 
@@ -97,7 +138,7 @@ export class GoogleProvider extends BaseProvider {
 
     return {
       content: textContent,
-      toolCalls: functionCalls ? functionCalls.map(fc => ({
+      toolCalls: functionCalls ? functionCalls.map((fc: any) => ({
         id: Math.random().toString(36).substring(7),
         name: fc.name,
         arguments: fc.args,

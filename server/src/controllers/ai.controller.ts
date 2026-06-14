@@ -20,7 +20,10 @@ export async function chat(req: Request, res: Response) {
     return res.json(response);
 
   } catch (error: any) {
-    if (error.message.includes('Message too long') || error.message.includes('Session limit reached')) {
+    if (error.status === 429) {
+      return res.status(429).json({ error: error.message, retryAfter: error.retryAfter || 30 });
+    }
+    if (error.message?.includes('Message too long') || error.message?.includes('Session limit reached')) {
       return res.status(400).json({ error: error.message });
     }
     
@@ -35,7 +38,7 @@ export async function chat(req: Request, res: Response) {
 export async function clearSession(req: Request, res: Response) {
   const { sessionId } = req.params;
   if (sessionId) {
-    chatMemory.deleteSession(sessionId);
+    chatMemory.deleteSession(sessionId as string);
   }
   return res.json({ success: true });
 }

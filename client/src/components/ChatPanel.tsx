@@ -17,7 +17,7 @@ const SUGGESTED_QUERIES = [
 ]
 
 export const ChatPanel: React.FC = () => {
-  const { messages, isLoading, error, turnsRemaining, sendMessage, clearChat, isOpen, setIsOpen } = useChatStore()
+  const { messages, isLoading, error, turnsRemaining, sendMessage, clearChat, isOpen, setIsOpen, cooldownRemaining } = useChatStore()
   const setTargetCatalogNumber = useGlobeStore((state) => state.setTargetCatalogNumber)
   const [inputText, setInputText] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -188,13 +188,13 @@ export const ChatPanel: React.FC = () => {
                   onChange={(e) => setInputText(e.target.value.substring(0, 1000))}
                   onKeyDown={handleKeyDown}
                   placeholder="Ask about satellites..."
-                  disabled={isLoading || isLimitReached}
+                  disabled={isLoading || isLimitReached || cooldownRemaining > 0}
                   rows={1}
                 />
                 <button 
                   className="send-button"
                   onClick={handleSend}
-                  disabled={!inputText.trim() || isLoading || isLimitReached}
+                  disabled={!inputText.trim() || isLoading || isLimitReached || cooldownRemaining > 0}
                 >
                   <Send size={18} />
                 </button>

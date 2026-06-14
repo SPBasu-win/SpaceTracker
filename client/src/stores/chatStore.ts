@@ -20,6 +20,8 @@ interface ChatState {
   clearChat: () => void
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
+  cooldownRemaining: number
+  setCooldown: (seconds: number) => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -29,10 +31,31 @@ export const useChatStore = create<ChatState>((set, get) => ({
   turnsRemaining: null,
   error: null,
   isOpen: false,
+  cooldownRemaining: 0,
   setIsOpen: (isOpen) => set({ isOpen }),
+  setCooldown: (seconds) => {
+    set({ cooldownRemaining: seconds })
+    if (seconds <= 0) return
+
+    const interval = setInterval(() => {
+      const { cooldownRemaining } = get()
+      if (cooldownRemaining <= 1) {
+        clearInterval(interval)
+        set({ cooldownRemaining: 0, error: null })
+      } else {
+        set({ 
+          cooldownRemaining: cooldownRemaining - 1, 
+          error: `AI Rate Limited: Please wait ${cooldownRemaining - 1} seconds.` 
+        })
+      }
+    }, 1000)
+  },
   
   sendMessage: async (text: string) => {
-    const { sessionId, messages } = get()
+    const { sessionId, messages, cooldownRemaining } = get()
+    
+    if (cooldownRemaining > 0) return
+
     
     // Add user message immediately
     const userMessage: ChatMessage = {
@@ -76,10 +99,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
       console.error('Chat error:', error)
       let errorMessage = 'An unexpected error occurred. Please try again.'
       
-      if (error.response?.data?.error) {
+      if (error.response?.status === 429) {
+        const retryAfter = error.response.data?.retryAfter || 30
+        get().setCooldown(retryAfter)
+        errorMessage = `AI Rate Limited: Please wait ${retryAfter} seconds.`
+        
+        // Remove the optimistically added user message so they can retry
+        set((state) => ({
+          messages: state.messages.slice(0, -1),
+          error: errorMessage,
+          isLoading: false
+        }))
+        return
+      } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error
-      } else if (error.response?.status === 429) {
-        errorMessage = 'Too many requests. Please wait a moment and try again.'
       }
       
       set({ error: errorMessage, isLoading: false })
@@ -92,7 +125,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       sessionId: crypto.randomUUID(),
       isLoading: false,
       turnsRemaining: null,
-      error: null
+      error: null,
+      cooldownRemaining: 0
     })
   }
 }))

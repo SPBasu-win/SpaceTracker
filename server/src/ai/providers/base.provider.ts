@@ -3,6 +3,7 @@ import { ChatMessage, ChatResponse, ToolDefinition } from '../types.js';
 export abstract class BaseProvider {
   protected apiKey: string;
   protected defaultModel: string;
+  public cooldownUntil: number = 0;
 
   constructor(apiKey: string, defaultModel: string) {
     this.apiKey = apiKey;

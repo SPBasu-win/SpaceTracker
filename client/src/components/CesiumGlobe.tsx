@@ -452,7 +452,7 @@ export function CesiumGlobe() {
             position: position,
             image: CIRCLE_SVG,
             color: colorForClass(asset.assetClass),
-            scaleByDistance: new Cesium.NearFarScalar(1_000_000, 0.12, 30_000_000, 0.02),
+            scaleByDistance: new Cesium.NearFarScalar(1.0e5, 0.3, 8.0e6, 0.025),
             id: entityData
           })
           billboardMapRef.current.set(asset.catalogNumber, newBillboard)
@@ -536,10 +536,10 @@ function applyBillboardStyle(billboard: Cesium.Billboard, asset: GlobeAsset, fil
   if (isSelected) {
     billboard.color = Cesium.Color.LIGHTGREEN
     billboard.image = SELECTED_CIRCLE_SVG
-    billboard.scaleByDistance = new Cesium.NearFarScalar(1_000_000, 0.12 * 1.2, 30_000_000, 0.02 * 1.2)
+    billboard.scaleByDistance = new Cesium.NearFarScalar(1.0e5, 0.3 * 1.5, 8.0e6, 0.025 * 1.5)
   } else {
     billboard.image = CIRCLE_SVG
-    billboard.scaleByDistance = new Cesium.NearFarScalar(1_000_000, 0.12, 30_000_000, 0.02)
+    billboard.scaleByDistance = new Cesium.NearFarScalar(1.0e5, 0.3, 8.0e6, 0.025)
     if (filterCategory === null || asset.assetClass === filterCategory || asset.assetClass.includes(filterCategory)) {
       billboard.color = colorForClass(asset.assetClass)
     } else {
@@ -572,7 +572,7 @@ function updateBillboards(billboards: Cesium.BillboardCollection, billboardMap: 
       position,
       image: CIRCLE_SVG,
       color: colorForClass(asset.assetClass),
-      scaleByDistance: new Cesium.NearFarScalar(1_000_000, 0.12, 30_000_000, 0.02),
+      scaleByDistance: new Cesium.NearFarScalar(1.0e5, 0.3, 8.0e6, 0.025),
       id: entityData,
     })
     billboardMap.set(asset.catalogNumber, billboard)

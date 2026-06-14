@@ -59,23 +59,27 @@ export class AIRouter {
 
     const startIndex = this.activeProviderIndex;
     let attempts = 0;
+    let lastError: any = null;
 
     while (attempts < this.providers.length) {
       const provider = this.providers[this.activeProviderIndex];
       try {
         const response = await provider.chat(messages, tools, options);
         return response;
-      } catch (error) {
-        console.error(`[AIRouter] Provider ${provider.providerName()} failed:`, error);
+      } catch (error: any) {
+        console.error(`[AIRouter] Provider ${provider.providerName()} failed:`, error.message || error);
+        lastError = error;
         
         // Rotate to next provider
         this.activeProviderIndex = (this.activeProviderIndex + 1) % this.providers.length;
         attempts++;
         
-        console.log(`[AIRouter] Switching to next provider: ${this.providers[this.activeProviderIndex].providerName()}`);
+        if (attempts < this.providers.length) {
+          console.log(`[AIRouter] Switching to next provider: ${this.providers[this.activeProviderIndex].providerName()}`);
+        }
       }
     }
 
-    throw new Error('All AI providers failed.');
+    throw lastError || new Error('All AI providers failed.');
   }
 }
