@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import * as Cesium from 'cesium'
-import { getGlobeAssets } from '../api/orbitalApi'
+import { getGlobeAssets, fetchGlobeAsset } from '../api/orbitalApi'
 import { useGlobeStore } from '../stores/globeStore'
 import type { GlobeAsset } from '../types/orbital'
 
@@ -9,6 +9,7 @@ type BillboardMap = Map<number, Cesium.Billboard>
 export function CesiumGlobe() {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const viewerRef = useRef<Cesium.Viewer | null>(null)
+  const trackingEntityRef = useRef<Cesium.Entity | null>(null)
   const billboardsRef = useRef<Cesium.BillboardCollection | null>(null)
   const billboardMapRef = useRef<BillboardMap>(new Map())
   const geoJsonRef = useRef<Cesium.GeoJsonDataSource | null>(null)
@@ -21,7 +22,12 @@ export function CesiumGlobe() {
     asset?: GlobeAsset;
   }>({ show: false, x: 0, y: 0 })
   const setSelected = useGlobeStore((state) => state.setSelected)
+  const selected = useGlobeStore((state) => state.selected)
   const mapStyle = useGlobeStore((state) => state.mapStyle)
+  const targetCatalogNumber = useGlobeStore((state) => state.targetCatalogNumber)
+  const filterCategory = useGlobeStore((state) => state.filterCategory)
+  
+  const prevSelectedRef = useRef<number | null>(null)
 
   useEffect(() => {
     console.log('[CesiumGlobe] Component mounting')
@@ -157,6 +163,9 @@ export function CesiumGlobe() {
       const picked = viewer.scene.pick(movement.position)
       if (!Cesium.defined(picked)) {
         setSelected(null)
+        useGlobeStore.getState().setFilterCategory(null)
+        useGlobeStore.getState().setTargetCatalogNumber(null)
+        viewer.trackedEntity = undefined
         viewer.camera.flyHome(1.5)
       }
     }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK)
@@ -170,7 +179,9 @@ export function CesiumGlobe() {
         
         if (hoveredRef.current?.billboard !== billboard) {
           if (hoveredRef.current) {
-            hoveredRef.current.billboard.color = hoveredRef.current.originalColor
+            const prevHoveredAsset = (hoveredRef.current.billboard.id as any).asset as GlobeAsset
+            const isSel = useGlobeStore.getState().selected?.catalogNumber === prevHoveredAsset.catalogNumber
+            applyBillboardStyle(hoveredRef.current.billboard, prevHoveredAsset, useGlobeStore.getState().filterCategory, isSel)
           }
           hoveredRef.current = { billboard, originalColor: billboard.color.clone() }
           billboard.color = Cesium.Color.LIGHTGREEN
@@ -184,7 +195,11 @@ export function CesiumGlobe() {
 
       } else {
         if (hoveredRef.current) {
-          hoveredRef.current.billboard.color = hoveredRef.current.originalColor
+          const prevHoveredAsset = (hoveredRef.current.billboard.id as any).asset as GlobeAsset
+          const isSel = useGlobeStore.getState().selected?.catalogNumber === prevHoveredAsset.catalogNumber
+          try {
+            applyBillboardStyle(hoveredRef.current.billboard, prevHoveredAsset, useGlobeStore.getState().filterCategory, isSel)
+          } catch(e) {}
           hoveredRef.current = null
         }
         if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
@@ -208,6 +223,12 @@ export function CesiumGlobe() {
         Cesium.Cartesian3.multiplyByScalar(data.velocity, dt, scratchVelocity)
         Cesium.Cartesian3.add(data.basePosition, scratchVelocity, scratchPosition)
         b.position = scratchPosition
+        
+        // Update tracking entity position if it's the selected one
+        const sel = useGlobeStore.getState().selected
+        if (sel && sel.catalogNumber === data.asset.catalogNumber && trackingEntityRef.current) {
+          (trackingEntityRef.current.position as Cesium.ConstantPositionProperty).setValue(scratchPosition)
+        }
       }
     }
     viewer.scene.preUpdate.addEventListener(preUpdateListener)
@@ -396,10 +417,86 @@ export function CesiumGlobe() {
 
     loadImagery()
 
+    // Initialize invisible tracking entity
+    trackingEntityRef.current = viewer.entities.add({
+      position: new Cesium.ConstantPositionProperty(Cesium.Cartesian3.ZERO),
+      point: { show: false }
+    })
+
     return () => { 
       cancelled = true
     }
   }, [mapStyle])
+
+  useEffect(() => {
+    if (!viewerRef.current || !billboardMapRef.current || !billboardsRef.current || targetCatalogNumber === null) return
+
+    const flyToAsset = (asset: GlobeAsset) => {
+      setSelected(asset)
+      if (viewerRef.current && trackingEntityRef.current) {
+        viewerRef.current.trackedEntity = trackingEntityRef.current
+      }
+    }
+
+    const billboard = billboardMapRef.current.get(targetCatalogNumber)
+    if (billboard && billboard.id) {
+      flyToAsset((billboard.id as any).asset as GlobeAsset)
+    } else {
+      fetchGlobeAsset(targetCatalogNumber).then(asset => {
+        if (asset && billboardsRef.current && billboardMapRef.current) {
+          const position = Cesium.Cartesian3.fromDegrees(asset.longitude, asset.latitude, asset.altitudeKm * 1000)
+          const velocity = asset.velocityEcf ? new Cesium.Cartesian3(asset.velocityEcf.x * 1000, asset.velocityEcf.y * 1000, asset.velocityEcf.z * 1000) : Cesium.Cartesian3.ZERO
+          const entityData = { asset, basePosition: position, velocity, updateTime: performance.now() }
+          
+          const newBillboard = billboardsRef.current.add({
+            position: position,
+            image: CIRCLE_SVG,
+            color: colorForClass(asset.assetClass),
+            scaleByDistance: new Cesium.NearFarScalar(1_000_000, 0.12, 30_000_000, 0.02),
+            id: entityData
+          })
+          billboardMapRef.current.set(asset.catalogNumber, newBillboard)
+          
+          flyToAsset(asset)
+        }
+      })
+    }
+  }, [targetCatalogNumber, setSelected])
+
+  useEffect(() => {
+    if (!billboardMapRef.current) return
+    for (const [_, billboard] of billboardMapRef.current) {
+      const data = billboard.id as any
+      if (!data) continue
+      const asset = data.asset as GlobeAsset
+      const isSelected = selected && asset.catalogNumber === selected.catalogNumber
+      applyBillboardStyle(billboard, asset, filterCategory, !!isSelected)
+    }
+  }, [filterCategory])
+
+  useEffect(() => {
+    if (!billboardMapRef.current) return
+
+    if (prevSelectedRef.current !== null) {
+      const prevBillboard = billboardMapRef.current.get(prevSelectedRef.current)
+      if (prevBillboard) {
+        const asset = (prevBillboard.id as any).asset as GlobeAsset
+        try {
+          applyBillboardStyle(prevBillboard, asset, filterCategory, false)
+        } catch (e) {}
+      }
+      prevSelectedRef.current = null
+    }
+
+    if (selected) {
+      const billboard = billboardMapRef.current.get(selected.catalogNumber)
+      if (billboard) {
+        const asset = (billboard.id as any).asset as GlobeAsset
+        applyBillboardStyle(billboard, asset, filterCategory, true)
+        prevSelectedRef.current = selected.catalogNumber
+      }
+    }
+  }, [selected])
 
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
@@ -433,6 +530,25 @@ export function CesiumGlobe() {
 }
 
 const CIRCLE_SVG = `data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><circle cx="64" cy="64" r="56" fill="white" stroke="black" stroke-width="6"/></svg>')}`
+const SELECTED_CIRCLE_SVG = `data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><defs><filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="8" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter></defs><circle cx="64" cy="64" r="48" fill="white" stroke="white" stroke-width="4" filter="url(#glow)"/></svg>')}`
+
+function applyBillboardStyle(billboard: Cesium.Billboard, asset: GlobeAsset, filterCategory: string | null, isSelected: boolean) {
+  if (isSelected) {
+    billboard.color = Cesium.Color.LIGHTGREEN
+    billboard.image = SELECTED_CIRCLE_SVG
+    billboard.scaleByDistance = new Cesium.NearFarScalar(1_000_000, 0.12 * 1.2, 30_000_000, 0.02 * 1.2)
+  } else {
+    billboard.image = CIRCLE_SVG
+    billboard.scaleByDistance = new Cesium.NearFarScalar(1_000_000, 0.12, 30_000_000, 0.02)
+    if (filterCategory === null || asset.assetClass === filterCategory || asset.assetClass.includes(filterCategory)) {
+      billboard.color = colorForClass(asset.assetClass)
+    } else {
+      const dimmedColor = colorForClass(asset.assetClass).clone()
+      dimmedColor.alpha = 0.1
+      billboard.color = dimmedColor
+    }
+  }
+}
 
 function updateBillboards(billboards: Cesium.BillboardCollection, billboardMap: BillboardMap, assets: GlobeAsset[]) {
   console.log(`[CesiumGlobe] Updating billboards for ${assets.length} assets...`)

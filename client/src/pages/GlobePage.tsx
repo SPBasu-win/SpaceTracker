@@ -3,6 +3,7 @@ import { Star, Map as MapIcon, Image as ImageIcon, Box, Maximize2, Minimize2, Mo
 import { CesiumGlobe } from '../components/CesiumGlobe'
 import { useGlobeStore } from '../stores/globeStore'
 import { useTrackingStore } from '../stores/trackingStore'
+import { useChatStore } from '../stores/chatStore'
 import { formatNumber } from '../utils/format'
 import './GlobePage.css'
 
@@ -13,6 +14,7 @@ export function GlobePage() {
   const isLoading = useGlobeStore((state) => state.isLoading)
   const loadProgress = useGlobeStore((state) => state.loadProgress)
   const add = useTrackingStore((state) => state.add)
+  const isChatOpen = useChatStore((state) => state.isOpen)
   
   const [isInfoCollapsed, setIsInfoCollapsed] = useState(false)
   const [showTutorial, setShowTutorial] = useState(true)
@@ -110,7 +112,7 @@ export function GlobePage() {
         </button>
       </div>
 
-      <aside className={`info-panel ${isInfoCollapsed ? 'collapsed' : ''}`}>
+      <aside className={`info-panel ${isInfoCollapsed ? 'collapsed' : ''} ${isChatOpen ? 'shifted' : ''}`}>
         {isInfoCollapsed ? (
           <button onClick={() => setIsInfoCollapsed(false)} className="expand-btn" title="Expand Info">
             <Maximize2 size={18} />

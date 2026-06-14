@@ -28,3 +28,7 @@ export interface ProviderConfig {
   modelId?: string;
   maxTokens?: number;
 }
+
+export type GlobeAction = 
+  | { type: 'FLY_TO'; catalogNumber: number }
+  | { type: 'FILTER_CATEGORY'; assetClass: string };

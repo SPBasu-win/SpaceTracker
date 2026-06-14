@@ -2,7 +2,7 @@ import { AIRouter } from '../ai/ai-router.js';
 import { SYSTEM_PROMPT } from '../ai/system-prompt.js';
 import { ToolRegistry } from '../ai/tools/tool-registry.js';
 import { chatMemory } from './chat-memory.js';
-import { ChatMessage } from '../ai/types.js';
+import { ChatMessage, GlobeAction } from '../ai/types.js';
 import {
   satelliteLookupTool,
   getSatellitePositionTool,
@@ -66,6 +66,7 @@ export class AIService {
     ];
 
     let toolsUsed: string[] = [];
+    let globeAction: GlobeAction | undefined = undefined;
     let loopCount = 0;
     const MAX_TOOL_LOOPS = 5;
 
@@ -89,7 +90,8 @@ export class AIService {
           reply: response.content,
           sessionId,
           toolsUsed,
-          turnsRemaining: chatMemory.getTurnsRemaining(sessionId)
+          turnsRemaining: chatMemory.getTurnsRemaining(sessionId),
+          globeAction
         };
       }
 
@@ -97,6 +99,21 @@ export class AIService {
       for (const toolCall of response.toolCalls) {
         if (!toolsUsed.includes(toolCall.name)) {
           toolsUsed.push(toolCall.name);
+        }
+        
+        try {
+          const args = typeof toolCall.arguments === 'string' ? JSON.parse(toolCall.arguments) : toolCall.arguments;
+          if (toolCall.name === 'get_satellite_position' || toolCall.name === 'get_satellite_info') {
+            if (args && args.catalogNumber) {
+              globeAction = { type: 'FLY_TO', catalogNumber: args.catalogNumber };
+            }
+          } else if (toolCall.name === 'satellite_lookup' || toolCall.name === 'count_satellites') {
+            if (args && args.assetClass) {
+              globeAction = { type: 'FILTER_CATEGORY', assetClass: args.assetClass };
+            }
+          }
+        } catch (e) {
+          // ignore parsing error for globeAction
         }
         
         const toolResult = await this.toolRegistry.executeTool(toolCall);
@@ -117,7 +134,8 @@ export class AIService {
       reply: "I needed to process too much information and had to stop. Please ask a more specific question.",
       sessionId,
       toolsUsed,
-      turnsRemaining: chatMemory.getTurnsRemaining(sessionId)
+      turnsRemaining: chatMemory.getTurnsRemaining(sessionId),
+      globeAction
     };
   }
 }

@@ -72,6 +72,10 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.info-panel.shifted {
+  right: calc(400px + 24px); /* Shift left by width of chat panel (400px) + margin */
+}
+
 .info-panel.collapsed {
   width: auto;
   padding: 12px;

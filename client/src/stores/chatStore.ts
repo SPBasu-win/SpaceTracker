@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { sendChatMessage } from '../api/aiApi'
+import { useGlobeStore } from './globeStore'
 
 export interface ChatMessage {
   id: string
@@ -17,6 +18,8 @@ interface ChatState {
   error: string | null
   sendMessage: (text: string) => Promise<void>
   clearChat: () => void
+  isOpen: boolean
+  setIsOpen: (isOpen: boolean) => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -25,6 +28,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isLoading: false,
   turnsRemaining: null,
   error: null,
+  isOpen: false,
+  setIsOpen: (isOpen) => set({ isOpen }),
   
   sendMessage: async (text: string) => {
     const { sessionId, messages } = get()
@@ -59,6 +64,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
         turnsRemaining: response.turnsRemaining ?? state.turnsRemaining,
         isLoading: false,
       }))
+      
+      if (response.globeAction) {
+        if (response.globeAction.type === 'FLY_TO' && response.globeAction.catalogNumber) {
+          useGlobeStore.getState().setTargetCatalogNumber(response.globeAction.catalogNumber)
+        } else if (response.globeAction.type === 'FILTER_CATEGORY' && response.globeAction.assetClass) {
+          useGlobeStore.getState().setFilterCategory(response.globeAction.assetClass)
+        }
+      }
     } catch (error: any) {
       console.error('Chat error:', error)
       let errorMessage = 'An unexpected error occurred. Please try again.'

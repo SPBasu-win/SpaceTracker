@@ -1,24 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useChatStore } from '../stores/chatStore'
+import { useGlobeStore } from '../stores/globeStore'
 import { Send, X, Bot, User, Orbit, AlertCircle, RefreshCw, MessageSquare } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import './ChatPanel.css'
 
-interface ChatPanelProps {
-  isOpen: boolean
-  onClose: () => void
-}
 
 const SUGGESTED_QUERIES = [
-  "Where is the ISS right now?",
+  "Show me the ISS on the globe",
+  "Highlight all Starlink satellites",
+  "Tell me some upcoming celestial events for my location",
   "What satellites are overhead from my location?",
   "When can I see the ISS tonight?",
-  "How many Starlink satellites are tracked?"
+  "Track satellite 25544"
 ]
 
-export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onClose }) => {
-  const { messages, isLoading, error, turnsRemaining, sendMessage, clearChat } = useChatStore()
+export const ChatPanel: React.FC = () => {
+  const { messages, isLoading, error, turnsRemaining, sendMessage, clearChat, isOpen, setIsOpen } = useChatStore()
+  const setTargetCatalogNumber = useGlobeStore((state) => state.setTargetCatalogNumber)
   const [inputText, setInputText] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -61,7 +61,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onClose }) => {
                 <RefreshCw size={18} />
               </button>
             )}
-            <button className="icon-button" onClick={onClose} title="Close Chat">
+            <button className="icon-button" onClick={() => setIsOpen(false)} title="Close Chat">
               <X size={20} />
             </button>
           </div>
@@ -101,7 +101,37 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onClose }) => {
                     <div className="message-text">{msg.content}</div>
                   ) : (
                     <div className="message-markdown">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          a: ({ node, ...props }) => {
+                            if (props.href?.startsWith('#track-')) {
+                              const catalogNumber = parseInt(props.href.replace('#track-', ''), 10)
+                              return (
+                                <button 
+                                  className="track-link-button"
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    if (!isNaN(catalogNumber)) setTargetCatalogNumber(catalogNumber)
+                                  }}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#60a5fa',
+                                    textDecoration: 'underline',
+                                    cursor: 'pointer',
+                                    padding: 0,
+                                    font: 'inherit'
+                                  }}
+                                >
+                                  {props.children}
+                                </button>
+                              )
+                            }
+                            return <a {...props} target="_blank" rel="noopener noreferrer" />
+                          }
+                        }}
+                      >
                         {msg.content}
                       </ReactMarkdown>
                     </div>

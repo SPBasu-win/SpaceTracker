@@ -1,10 +1,17 @@
 import { apiClient } from './client'
 
+export interface GlobeAction {
+  type: 'FLY_TO' | 'FILTER_CATEGORY'
+  catalogNumber?: number
+  assetClass?: string
+}
+
 export interface ChatResponse {
   reply: string
   sessionId: string
   toolsUsed?: string[]
   turnsRemaining?: number
+  globeAction?: GlobeAction
 }
 
 export interface HealthResponse {

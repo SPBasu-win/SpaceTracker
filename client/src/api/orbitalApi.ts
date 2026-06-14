@@ -38,3 +38,30 @@ export async function getOverhead(latitude: number, longitude: number) {
   const { data } = await apiClient.get('/overhead', { params: { latitude, longitude } })
   return data
 }
+
+export async function fetchGlobeAsset(catalogNumber: number): Promise<GlobeAsset | null> {
+  try {
+    const [asset, position] = await Promise.all([
+      getAsset(catalogNumber),
+      getPosition(catalogNumber)
+    ])
+    if (!asset || !position) return null
+
+    return {
+      catalogNumber: asset.catalogNumber,
+      name: asset.displayName || asset.internationalDesignator,
+      assetClass: asset.assetClass,
+      operatorName: asset.operatorName,
+      originCountry: asset.originCountry,
+      latitude: position.latitude,
+      longitude: position.longitude,
+      altitudeKm: position.altitudeKm,
+      velocityKmps: position.velocityKmps,
+      updatedAt: asset.updatedAt,
+      tleEpoch: asset.orbitalEpoch || asset.updatedAt
+    }
+  } catch (error) {
+    console.warn(`Failed to fetch globe asset ${catalogNumber}:`, error)
+    return null
+  }
+}

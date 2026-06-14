@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { BarChart3, Crosshair, Globe2, List, Settings, Star, MessageSquare, Menu } from 'lucide-react'
 import { ChatPanel } from '../components/ChatPanel'
+import { useChatStore } from '../stores/chatStore'
 
 const links = [
   { to: '/dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -12,7 +13,7 @@ const links = [
 ]
 
 export function AppShell() {
-  const [isChatOpen, setIsChatOpen] = useState(false)
+  const { isOpen: isChatOpen, setIsOpen: setIsChatOpen } = useChatStore()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
   return (
@@ -52,7 +53,7 @@ export function AppShell() {
         <MessageSquare size={24} />
       </button>
 
-      <ChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      <ChatPanel />
     </div>
   )
 }
