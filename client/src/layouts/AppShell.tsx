@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { BarChart3, Crosshair, Globe2, List, Settings, Star, MessageSquare } from 'lucide-react'
+import { BarChart3, Crosshair, Globe2, List, Settings, Star, MessageSquare, Menu } from 'lucide-react'
 import { ChatPanel } from '../components/ChatPanel'
 
 const links = [
@@ -13,15 +13,25 @@ const links = [
 
 export function AppShell() {
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand"><Crosshair size={22} /> SpaceTracker</div>
+    <div className={`app-shell ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <aside className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+        <div className="brand">
+          {!isSidebarCollapsed && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Crosshair size={22} /> SpaceTracker
+            </div>
+          )}
+          <button className="sidebar-toggle" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} title="Toggle Sidebar">
+            <Menu size={20} />
+          </button>
+        </div>
         <nav>
           {links.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} className={({ isActive }) => (isActive ? 'active' : '')}>
-              <Icon size={18} /> {label}
+            <NavLink key={to} to={to} className={({ isActive }) => (isActive ? 'active' : '')} title={isSidebarCollapsed ? label : undefined}>
+              <Icon size={18} /> <span>{label}</span>
             </NavLink>
           ))}
         </nav>

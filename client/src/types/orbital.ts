@@ -44,6 +44,7 @@ export type GlobeAsset = {
   longitude: number
   altitudeKm: number
   velocityKmps: number
+  velocityEcf?: { x: number, y: number, z: number }
   updatedAt: string
   tleEpoch: string
 }

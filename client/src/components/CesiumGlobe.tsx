@@ -1,20 +1,30 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as Cesium from 'cesium'
 import { getGlobeAssets } from '../api/orbitalApi'
 import { useGlobeStore } from '../stores/globeStore'
 import type { GlobeAsset } from '../types/orbital'
 
-type EntityMap = Map<number, Cesium.Entity>
+type BillboardMap = Map<number, Cesium.Billboard>
 
 export function CesiumGlobe() {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const viewerRef = useRef<Cesium.Viewer | null>(null)
-  const entityMapRef = useRef<EntityMap>(new Map())
+  const billboardsRef = useRef<Cesium.BillboardCollection | null>(null)
+  const billboardMapRef = useRef<BillboardMap>(new Map())
   const geoJsonRef = useRef<Cesium.GeoJsonDataSource | null>(null)
+  const hoveredRef = useRef<{ billboard: Cesium.Billboard, originalColor: Cesium.Color } | null>(null)
+  const hoverTimeoutRef = useRef<number | null>(null)
+  const [hoverInfo, setHoverInfo] = useState<{
+    show: boolean;
+    x: number;
+    y: number;
+    asset?: GlobeAsset;
+  }>({ show: false, x: 0, y: 0 })
   const setSelected = useGlobeStore((state) => state.setSelected)
   const mapStyle = useGlobeStore((state) => state.mapStyle)
 
   useEffect(() => {
+    console.log('[CesiumGlobe] Component mounting')
     if (!containerRef.current) return
 
     Cesium.Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_TOKEN || ''
@@ -35,7 +45,17 @@ export function CesiumGlobe() {
     viewer.scene.globe.enableLighting = true
     viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#10253f')
     viewer.scene.postProcessStages.fxaa.enabled = true
+    
+    // Reduce camera sensitivity and inertia to stop wild spinning and slow down drag
+    viewer.scene.screenSpaceCameraController.inertiaSpin = 0.7
+    viewer.scene.screenSpaceCameraController.inertiaTranslate = 0.7
+    viewer.scene.screenSpaceCameraController.inertiaZoom = 0.7
+    viewer.scene.screenSpaceCameraController.maximumMovementRatio = 0.05
+    
     viewerRef.current = viewer
+
+    const billboards = viewer.scene.primitives.add(new Cesium.BillboardCollection())
+    billboardsRef.current = billboards
 
     Cesium.GeoJsonDataSource.load('https://raw.githubusercontent.com/datasets/geo-boundaries-world-110m/master/countries.geojson', {
       stroke: Cesium.Color.BLACK,
@@ -122,34 +142,201 @@ export function CesiumGlobe() {
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
     handler.setInputAction((movement: Cesium.ScreenSpaceEventHandler.PositionedEvent) => {
       const picked = viewer.scene.pick(movement.position)
-      if (Cesium.defined(picked?.id)) {
-        const entity = picked.id as Cesium.Entity
-        const asset = entity.properties?.asset?.getValue(Cesium.JulianDate.now()) as GlobeAsset | undefined
-        if (asset) {
-          setSelected(asset)
-          viewer.flyTo(entity, { duration: 0.9, offset: new Cesium.HeadingPitchRange(0, -0.7, 1_400_000) })
-        }
+      if (Cesium.defined(picked) && picked.primitive && picked.id && (picked.id as any).asset) {
+        const asset = (picked.id as any).asset as GlobeAsset
+        setSelected(asset)
+        const position = Cesium.Cartesian3.fromDegrees(asset.longitude, asset.latitude, asset.altitudeKm * 1000)
+        viewer.camera.flyToBoundingSphere(new Cesium.BoundingSphere(position, 1000), {
+          duration: 0.9,
+          offset: new Cesium.HeadingPitchRange(0, -0.7, 1_400_000)
+        })
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
 
+    handler.setInputAction((movement: Cesium.ScreenSpaceEventHandler.PositionedEvent) => {
+      const picked = viewer.scene.pick(movement.position)
+      if (!Cesium.defined(picked)) {
+        setSelected(null)
+        viewer.camera.flyHome(1.5)
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK)
+
+    handler.setInputAction((movement: Cesium.ScreenSpaceEventHandler.MotionEvent) => {
+      const picked = viewer.scene.pick(movement.endPosition)
+      
+      if (Cesium.defined(picked) && picked.primitive && picked.id && (picked.id as any).asset) {
+        const asset = (picked.id as any).asset as GlobeAsset
+        const billboard = picked.primitive as Cesium.Billboard
+        
+        if (hoveredRef.current?.billboard !== billboard) {
+          if (hoveredRef.current) {
+            hoveredRef.current.billboard.color = hoveredRef.current.originalColor
+          }
+          hoveredRef.current = { billboard, originalColor: billboard.color.clone() }
+          billboard.color = Cesium.Color.LIGHTGREEN
+        }
+
+        if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+        
+        hoverTimeoutRef.current = window.setTimeout(() => {
+          setHoverInfo({ show: true, x: movement.endPosition.x, y: movement.endPosition.y, asset })
+        }, 100)
+
+      } else {
+        if (hoveredRef.current) {
+          hoveredRef.current.billboard.color = hoveredRef.current.originalColor
+          hoveredRef.current = null
+        }
+        if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+        setHoverInfo(prev => prev.show ? { ...prev, show: false } : prev)
+      }
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
+
+    const scratchVelocity = new Cesium.Cartesian3()
+    const scratchPosition = new Cesium.Cartesian3()
+
+    const preUpdateListener = () => {
+      if (!billboardsRef.current) return
+      const length = billboardsRef.current.length
+      const now = performance.now()
+      for (let i = 0; i < length; i++) {
+        const b = billboardsRef.current.get(i)
+        const data = b.id as any
+        if (!data || !data.velocity || !data.basePosition) continue
+        
+        const dt = (now - data.updateTime) / 1000.0
+        Cesium.Cartesian3.multiplyByScalar(data.velocity, dt, scratchVelocity)
+        Cesium.Cartesian3.add(data.basePosition, scratchVelocity, scratchPosition)
+        b.position = scratchPosition
+      }
+    }
+    viewer.scene.preUpdate.addEventListener(preUpdateListener)
+
     let cancelled = false
-    const refresh = async () => {
-      const { assets } = await getGlobeAssets()
-      if (cancelled || viewer.isDestroyed()) return
-      updateEntities(viewer, entityMapRef.current, assets)
+    const refresh = async (isInitial = false) => {
+      console.log('[CesiumGlobe] Fetching assets...')
+      let simulatedProgress = 0
+      let progressInterval: number | undefined
+
+      if (isInitial) {
+        useGlobeStore.getState().setIsLoading(true)
+        useGlobeStore.getState().setLoadProgress(0)
+        progressInterval = window.setInterval(() => {
+          // Asymptotically approach 90% while waiting for network/parsing
+          simulatedProgress += (90 - simulatedProgress) * 0.1
+          useGlobeStore.getState().setLoadProgress(Math.round(simulatedProgress))
+        }, 100)
+      }
+
+      try {
+        const { assets } = await getGlobeAssets(25_000)
+        if (isInitial) console.log(`[CesiumGlobe] Fetched ${assets?.length} assets`)
+        
+        if (cancelled || viewer.isDestroyed() || !billboardsRef.current) {
+          if (isInitial) console.log('[CesiumGlobe] Refresh aborted: cancelled, destroyed, or no billboards collection')
+          if (progressInterval) clearInterval(progressInterval)
+          return
+        }
+
+        // Parse and render the billboards
+        updateBillboards(billboardsRef.current, billboardMapRef.current, assets)
+        
+        if (isInitial) {
+          if (progressInterval) clearInterval(progressInterval)
+          useGlobeStore.getState().setLoadProgress(100)
+          setTimeout(() => {
+            if (!cancelled) useGlobeStore.getState().setIsLoading(false)
+          }, 400)
+        }
+
+      } catch (err) {
+        console.error('[CesiumGlobe] Error fetching assets:', err)
+        if (isInitial) {
+          if (progressInterval) clearInterval(progressInterval)
+          useGlobeStore.getState().setIsLoading(false)
+        }
+      }
     }
 
-    refresh().catch(console.error)
-    const timer = window.setInterval(() => refresh().catch(console.error), 15_000)
+    refresh(true) // Initial load triggers the UI bar
+    const timer = window.setInterval(() => refresh(false).catch(console.error), 15_000)
+
+    let isSpaceHeld = false
+    let isDragging = false
+    let lastMousePosition: Cesium.Cartesian2 | null = null
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !e.repeat && !viewer.isDestroyed()) {
+        isSpaceHeld = true
+        viewer.scene.screenSpaceCameraController.enableRotate = false
+        const canvas = viewer.scene.canvas as HTMLCanvasElement
+        canvas.style.cursor = isDragging ? 'grabbing' : 'grab'
+      }
+    }
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !viewer.isDestroyed()) {
+        isSpaceHeld = false
+        viewer.scene.screenSpaceCameraController.enableRotate = true
+        const canvas = viewer.scene.canvas as HTMLCanvasElement
+        canvas.style.cursor = 'default'
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+
+    const dragHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
+    
+    dragHandler.setInputAction((movement: Cesium.ScreenSpaceEventHandler.PositionedEvent) => {
+      isDragging = true
+      lastMousePosition = movement.position.clone()
+      if (isSpaceHeld) {
+        const canvas = viewer.scene.canvas as HTMLCanvasElement
+        canvas.style.cursor = 'grabbing'
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_DOWN)
+    
+    dragHandler.setInputAction((movement: Cesium.ScreenSpaceEventHandler.MotionEvent) => {
+      if (isDragging && isSpaceHeld && lastMousePosition) {
+        const deltaX = movement.endPosition.x - lastMousePosition.x
+        const deltaY = movement.endPosition.y - lastMousePosition.y
+        
+        // Scale movement speed by camera altitude so it feels 1:1
+        const height = viewer.camera.positionCartographic.height
+        const scalar = height * 0.0015 
+
+        viewer.camera.moveLeft(deltaX * scalar)
+        viewer.camera.moveUp(deltaY * scalar)
+        
+        lastMousePosition = movement.endPosition.clone()
+      } else if (isDragging) {
+        lastMousePosition = movement.endPosition.clone()
+      }
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
+
+    dragHandler.setInputAction(() => {
+      isDragging = false
+      lastMousePosition = null
+      if (isSpaceHeld) {
+        const canvas = viewer.scene.canvas as HTMLCanvasElement
+        canvas.style.cursor = 'grab'
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_UP)
 
     return () => {
       cancelled = true
       window.clearInterval(timer)
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+      viewer.scene.preUpdate.removeEventListener(preUpdateListener)
       removeListener()
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
       handler.destroy()
+      dragHandler.destroy()
       viewer.destroy()
       viewerRef.current = null
-      entityMapRef.current.clear()
+      billboardMapRef.current.clear()
     }
   }, [setSelected])
 
@@ -214,42 +401,78 @@ export function CesiumGlobe() {
     }
   }, [mapStyle])
 
-  return <div ref={containerRef} className="globe-canvas" />
+  return (
+    <div style={{ position: 'absolute', inset: 0 }}>
+      <div ref={containerRef} className="globe-canvas" />
+      
+      {hoverInfo.show && hoverInfo.asset && (
+        <div 
+          style={{
+            position: 'absolute',
+            top: hoverInfo.y + 15,
+            left: hoverInfo.x + 15,
+            pointerEvents: 'none',
+            backgroundColor: 'rgba(16, 37, 63, 0.9)',
+            border: '1px solid #3b82f6',
+            color: 'white',
+            padding: '8px 12px',
+            borderRadius: '6px',
+            fontSize: '14px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            zIndex: 50,
+            backdropFilter: 'blur(4px)',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>{hoverInfo.asset.name || 'Unknown Satellite'}</div>
+          <div style={{ fontSize: '12px', color: '#93c5fd' }}>{hoverInfo.asset.assetClass} • NORAD: {hoverInfo.asset.catalogNumber}</div>
+        </div>
+      )}
+    </div>
+  )
 }
 
-function updateEntities(viewer: Cesium.Viewer, entities: EntityMap, assets: GlobeAsset[]) {
+const CIRCLE_SVG = `data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><circle cx="64" cy="64" r="56" fill="white" stroke="black" stroke-width="6"/></svg>')}`
+
+function updateBillboards(billboards: Cesium.BillboardCollection, billboardMap: BillboardMap, assets: GlobeAsset[]) {
+  console.log(`[CesiumGlobe] Updating billboards for ${assets.length} assets...`)
+  let added = 0
+  let updated = 0
   const seen = new Set<number>()
   for (const asset of assets) {
     seen.add(asset.catalogNumber)
     const position = Cesium.Cartesian3.fromDegrees(asset.longitude, asset.latitude, asset.altitudeKm * 1000)
-    const existing = entities.get(asset.catalogNumber)
+    const velocity = asset.velocityEcf ? new Cesium.Cartesian3(asset.velocityEcf.x * 1000, asset.velocityEcf.y * 1000, asset.velocityEcf.z * 1000) : Cesium.Cartesian3.ZERO
+    const entityData = { asset, basePosition: position, velocity, updateTime: performance.now() }
+    
+    const existing = billboardMap.get(asset.catalogNumber)
     if (existing) {
-      existing.position = new Cesium.ConstantPositionProperty(position)
-      existing.properties = new Cesium.PropertyBag({ asset })
+      existing.position = position
+      existing.id = entityData
+      updated++
       continue
     }
-    const entity = viewer.entities.add({
-      id: String(asset.catalogNumber),
-      name: asset.name ?? String(asset.catalogNumber),
+    const billboard = billboards.add({
       position,
-      point: {
-        pixelSize: 4,
-        color: colorForClass(asset.assetClass),
-        outlineColor: Cesium.Color.BLACK.withAlpha(0.55),
-        outlineWidth: 1,
-        scaleByDistance: new Cesium.NearFarScalar(1_000_000, 1.4, 35_000_000, 0.45),
-      },
-      properties: { asset },
+      image: CIRCLE_SVG,
+      color: colorForClass(asset.assetClass),
+      scaleByDistance: new Cesium.NearFarScalar(1_000_000, 0.12, 30_000_000, 0.02),
+      id: entityData,
     })
-    entities.set(asset.catalogNumber, entity)
+    billboardMap.set(asset.catalogNumber, billboard)
+    added++
   }
 
-  for (const [catalogNumber, entity] of entities) {
+  let removed = 0
+  for (const [catalogNumber, billboard] of billboardMap) {
     if (!seen.has(catalogNumber)) {
-      viewer.entities.remove(entity)
-      entities.delete(catalogNumber)
+      billboards.remove(billboard)
+      billboardMap.delete(catalogNumber)
+      removed++
     }
   }
+  
+  console.log(`[CesiumGlobe] Billboards updated. Added: ${added}, Updated: ${updated}, Removed: ${removed}. Total: ${billboardMap.size}`)
 }
 
 function colorForClass(assetClass: GlobeAsset['assetClass']) {

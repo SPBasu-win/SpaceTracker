@@ -55,5 +55,188 @@
   z-index: 10;
   pointer-events: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
+}
+
+.info-panel {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: 320px;
+  background-color: rgba(12, 20, 33, 0.88);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #1a2a3d);
+  color: #c0caf5;
+  z-index: 10;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.info-panel.collapsed {
+  width: auto;
+  padding: 12px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.expand-btn, .collapse-btn {
+  background: transparent;
+  border: none;
+  color: #9eb0c5;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.expand-btn:hover, .collapse-btn:hover {
+  background: rgba(122, 162, 247, 0.2);
+  color: #c0caf5;
+}
+
+/* --- Loading Overlay & Progress Bar --- */
+.loading-overlay {
+  position: absolute;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.loading-card {
+  background-color: rgba(12, 20, 33, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-color, #1a2a3d);
+  padding: 16px 24px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.loading-text {
+  display: flex;
+  justify-content: space-between;
+  color: #c0caf5;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.progress-bar-container {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #7aa2f7);
+  border-radius: 4px;
+  transition: width 0.2s ease-out;
+}
+
+/* --- Tutorial Overlay --- */
+.tutorial-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 90;
+  pointer-events: none;
+  margin-top: 60px; /* Push down to avoid overlapping the loading bar */
+}
+
+.tutorial-card {
+  background-color: rgba(12, 20, 33, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(122, 162, 247, 0.3);
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  width: 320px;
+  pointer-events: auto;
+  color: #c0caf5;
+  font-family: 'Inter', sans-serif;
+}
+
+.tutorial-card h2 {
+  margin: 0 0 6px 0;
+  color: #ffffff;
+  font-size: 1.25rem;
+}
+
+.tutorial-card p {
+  margin: 0 0 16px 0;
+  color: #9eb0c5;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.tutorial-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.tutorial-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tutorial-icon {
+  color: #7aa2f7;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.tutorial-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tutorial-text strong {
+  color: #ffffff;
+  font-size: 0.85rem;
+}
+
+.tutorial-text span {
+  color: #9eb0c5;
+  font-size: 0.75rem;
+}
+
+.tutorial-btn {
+  width: 100%;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tutorial-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
 }

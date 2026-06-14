@@ -72,7 +72,22 @@ export async function getGlobeAssets(limit = 25_000, at = new Date()) {
       if (!tle) return [];
       try {
         const { position, velocity } = propagateTle(tle.elementLine1, tle.elementLine2, at);
+        const gmst = satellite.gstime(at);
         const geo = satellite.eciToGeodetic(position, gmst);
+
+        const atPlus1 = new Date(at.getTime() + 1000);
+        const { position: pos2 } = propagateTle(tle.elementLine1, tle.elementLine2, atPlus1);
+        const gmst2 = satellite.gstime(atPlus1);
+        
+        const ecf1 = satellite.eciToEcf(position, gmst);
+        const ecf2 = satellite.eciToEcf(pos2, gmst2);
+        
+        const velocityEcf = {
+          x: ecf2.x - ecf1.x,
+          y: ecf2.y - ecf1.y,
+          z: ecf2.z - ecf1.z,
+        };
+
         return [{
           catalogNumber: asset.catalogNumber,
           name: asset.displayName,
@@ -83,6 +98,7 @@ export async function getGlobeAssets(limit = 25_000, at = new Date()) {
           longitude: normalizeLongitude(satellite.degreesLong(geo.longitude)),
           altitudeKm: geo.height,
           velocityKmps: magnitude(velocity),
+          velocityEcf,
           updatedAt: asset.updatedAt.toISOString(),
           tleEpoch: tle.epochTimestamp.toISOString(),
         }];
@@ -146,9 +162,13 @@ export async function getOverheadAssets(observer: Required<Observer>) {
   for (const asset of assets) {
     const tle = asset.elementArchive[0];
     if (!tle) continue;
-    const lookAngles = lookAnglesFromTle(tle.elementLine1, tle.elementLine2, observer, now);
-    if (lookAngles.elevation >= observer.minimumElevation) {
-      visible.push({ asset, ...lookAngles, timestamp: now.toISOString() });
+    try {
+      const lookAngles = lookAnglesFromTle(tle.elementLine1, tle.elementLine2, observer, now);
+      if (lookAngles.elevation >= observer.minimumElevation) {
+        visible.push({ asset, ...lookAngles, timestamp: now.toISOString() });
+      }
+    } catch {
+      continue;
     }
   }
 
@@ -168,7 +188,13 @@ export async function predictPasses(catalogNumber: number, observer: Observer, h
 
   for (let time = Date.now(); time <= end; time += stepMs) {
     const at = new Date(time);
-    const angles = lookAnglesFromTle(tle.line1, tle.line2, observer, at);
+    let angles;
+    try {
+      angles = lookAnglesFromTle(tle.line1, tle.line2, observer, at);
+    } catch {
+      continue; // Skip failed propagations (e.g. decayed orbit)
+    }
+
     if (angles.elevation >= minimumElevation) {
       if (!active) active = { acquisitionTime: at, maxElevation: angles.elevation, azimuthAtMax: angles.azimuth };
       if (angles.elevation > active.maxElevation) {
