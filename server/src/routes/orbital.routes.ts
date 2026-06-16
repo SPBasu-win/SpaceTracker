@@ -3,6 +3,8 @@ import {
   getAsset,
   getGlobeAssets,
   getOverhead,
+  getSkyOverhead,
+  getPlanetPosition,
   getObservations,
   getPasses,
   getPosition,
@@ -24,6 +26,8 @@ orbitalRouter.get("/assets/:catalogNumber", asyncHandler(getAsset));
 orbitalRouter.get("/assets/:catalogNumber/position", asyncHandler(getPosition));
 orbitalRouter.get("/assets/:catalogNumber/passes", asyncHandler(getPasses));
 orbitalRouter.get("/overhead", asyncHandler(getOverhead));
+orbitalRouter.get("/sky/overhead", asyncHandler(getSkyOverhead));
+orbitalRouter.get("/sky/planet/:name", asyncHandler(getPlanetPosition));
 orbitalRouter.get("/observations", asyncHandler(getObservations));
 orbitalRouter.get("/visibility-windows", asyncHandler(getVisibilityWindows));
 orbitalRouter.post("/sync", asyncHandler(runSync));

@@ -1,5 +1,6 @@
 import { AssetClass } from "@prisma/client";
 import * as orbitalService from "../services/orbital.service.js";
+import * as astronomyService from "../services/astronomy.service.js";
 import { runSyncJob } from "../jobs/sync.job.js";
 export async function listAssets(req, res) {
     const catalogNumber = optionalNumber(req.query.catalogNumber);
@@ -27,6 +28,33 @@ export async function getOverhead(req, res) {
     const longitude = requiredNumber(req.query.longitude, "longitude");
     const minimumElevation = optionalNumber(req.query.minimumElevation) ?? 10;
     res.json(await orbitalService.getOverheadAssets({ latitude, longitude, minimumElevation }));
+}
+/**
+ * Project Zenith: enriched sky overhead — Sun, Moon and planets with
+ * alt/azimuth, distance, visibility and Moon-phase. Computed via
+ * astronomy-engine, independent of the satellite TLE pipeline.
+ */
+export async function getSkyOverhead(req, res) {
+    const latitude = requiredNumber(req.query.latitude, "latitude");
+    const longitude = requiredNumber(req.query.longitude, "longitude");
+    const onlyVisible = req.query.onlyVisible === "true";
+    res.json({
+        observer: { latitude, longitude },
+        timestamp: new Date().toISOString(),
+        bodies: astronomyService.getSkyOverhead({ latitude, longitude }, new Date(), { onlyVisible }),
+    });
+}
+/** Sky position of a single solar-system body (planet/Moon/Sun) for an observer. */
+export async function getPlanetPosition(req, res) {
+    const name = String(req.params.name);
+    const latitude = requiredNumber(req.query.latitude, "latitude");
+    const longitude = requiredNumber(req.query.longitude, "longitude");
+    const position = astronomyService.getBodyPosition(name, { latitude, longitude });
+    if (!position) {
+        throw Object.assign(new Error(`Unknown celestial body: ${name}`), { statusCode: 404 });
+    }
+    const riseSet = astronomyService.getRiseSet(name, { latitude, longitude });
+    res.json({ ...position, ...riseSet });
 }
 export async function getObservations(req, res) {
     res.json(await orbitalService.listObservations(optionalNumber(req.query.limit) ?? 100));
