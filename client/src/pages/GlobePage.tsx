@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { Star, Map as MapIcon, Image as ImageIcon, Box, Maximize2, Minimize2, MousePointer2, Hand, Search, X } from 'lucide-react'
+import { Star, Map as MapIcon, Image as ImageIcon, Box, Maximize2, Minimize2, MousePointer2, Hand, Search, X, Globe2, Compass } from 'lucide-react'
 import { CesiumGlobe } from '../components/CesiumGlobe'
+import { SkyMapCanvas } from '../components/SkyMapCanvas'
 import { LocationPrompt } from '../components/LocationPrompt'
 import { useGlobeStore } from '../stores/globeStore'
 import { useTrackingStore } from '../stores/trackingStore'
 import { useChatStore } from '../stores/chatStore'
+import { useSkyStore } from '../stores/skyStore'
 import { formatNumber } from '../utils/format'
 import './GlobePage.css'
 
@@ -16,17 +18,32 @@ export function GlobePage() {
   const loadProgress = useGlobeStore((state) => state.loadProgress)
   const add = useTrackingStore((state) => state.add)
   const isChatOpen = useChatStore((state) => state.isOpen)
-  
+  const viewMode = useSkyStore((state) => state.viewMode)
+  const setViewMode = useSkyStore((state) => state.setViewMode)
+
   const [isInfoCollapsed, setIsInfoCollapsed] = useState(false)
   const [showTutorial, setShowTutorial] = useState(true)
+  const isSkyMap = viewMode === 'skymap'
 
   return (
     <div className="globe-page">
+      {/* Cesium stays mounted so the viewer + camera state persist across toggles */}
       <CesiumGlobe />
+      {isSkyMap && <SkyMapCanvas />}
       <LocationPrompt />
 
+      {/* Globe / Sky Map view toggle */}
+      <div className="view-mode-toggle">
+        <button className={!isSkyMap ? 'active' : ''} onClick={() => setViewMode('globe')} title="3D Globe view">
+          <Globe2 size={15} /> Globe
+        </button>
+        <button className={isSkyMap ? 'active' : ''} onClick={() => setViewMode('skymap')} title="Zenith Sky Map view">
+          <Compass size={15} /> Sky Map
+        </button>
+      </div>
+
       {/* Loading Progress Bar */}
-      {isLoading && (
+      {isLoading && !isSkyMap && (
         <div className="loading-overlay">
           <div className="loading-card">
             <div className="loading-text">
@@ -41,7 +58,7 @@ export function GlobePage() {
       )}
 
       {/* Tutorial Overlay */}
-      {showTutorial && (
+      {showTutorial && !isSkyMap && (
         <div className="tutorial-overlay">
           <div className="tutorial-card">
             <h2>Globe Controls</h2>
@@ -85,34 +102,38 @@ export function GlobePage() {
         </div>
       )}
 
-      {/* Map Style Controls */}
-      <div id="altitude-indicator" className="altitude-indicator">
-        Altitude: -- km
-      </div>
-      
-      <div className="map-style-controls">
-        <button 
-          className={`style-btn ${mapStyle === 'satellite' ? 'active' : ''}`}
-          onClick={() => setMapStyle('satellite')}
-          title="Satellite Imagery"
-        >
-          <ImageIcon size={16} /> Satellite
-        </button>
-        <button 
-          className={`style-btn ${mapStyle === 'map' ? 'active' : ''}`}
-          onClick={() => setMapStyle('map')}
-          title="Map with Borders"
-        >
-          <MapIcon size={16} /> Map
-        </button>
-        <button 
-          className={`style-btn ${mapStyle === 'base' ? 'active' : ''}`}
-          onClick={() => setMapStyle('base')}
-          title="Base Color"
-        >
-          <Box size={16} /> Base
-        </button>
-      </div>
+      {/* Map Style Controls (globe view only) */}
+      {!isSkyMap && (
+        <>
+          <div id="altitude-indicator" className="altitude-indicator">
+            Altitude: -- km
+          </div>
+
+          <div className="map-style-controls">
+            <button
+              className={`style-btn ${mapStyle === 'satellite' ? 'active' : ''}`}
+              onClick={() => setMapStyle('satellite')}
+              title="Satellite Imagery"
+            >
+              <ImageIcon size={16} /> Satellite
+            </button>
+            <button
+              className={`style-btn ${mapStyle === 'map' ? 'active' : ''}`}
+              onClick={() => setMapStyle('map')}
+              title="Map with Borders"
+            >
+              <MapIcon size={16} /> Map
+            </button>
+            <button
+              className={`style-btn ${mapStyle === 'base' ? 'active' : ''}`}
+              onClick={() => setMapStyle('base')}
+              title="Base Color"
+            >
+              <Box size={16} /> Base
+            </button>
+          </div>
+        </>
+      )}
 
       <aside className={`info-panel ${isInfoCollapsed ? 'collapsed' : ''} ${isChatOpen ? 'shifted' : ''}`}>
         {isInfoCollapsed ? (
