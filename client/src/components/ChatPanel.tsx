@@ -20,6 +20,7 @@ const SUGGESTED_QUERIES = [
 export const ChatPanel: React.FC = () => {
   const { messages, isLoading, error, turnsRemaining, sendMessage, clearChat, isOpen, setIsOpen, cooldownRemaining } = useChatStore()
   const setTargetCatalogNumber = useGlobeStore((state) => state.setTargetCatalogNumber)
+  const setActivePlanet = useGlobeStore((state) => state.setActivePlanet)
   const { locationName } = useObserverStore()
   const [inputText, setInputText] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -113,24 +114,40 @@ export const ChatPanel: React.FC = () => {
                         remarkPlugins={[remarkGfm]}
                         components={{
                           a: ({ node, ...props }) => {
+                            const linkStyle = {
+                              background: 'none',
+                              border: 'none',
+                              color: '#60a5fa',
+                              textDecoration: 'underline',
+                              cursor: 'pointer',
+                              padding: 0,
+                              font: 'inherit'
+                            }
                             if (props.href?.startsWith('#track-')) {
                               const catalogNumber = parseInt(props.href.replace('#track-', ''), 10)
                               return (
-                                <button 
+                                <button
                                   className="track-link-button"
                                   onClick={(e) => {
                                     e.preventDefault()
                                     if (!isNaN(catalogNumber)) setTargetCatalogNumber(catalogNumber)
                                   }}
-                                  style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    color: '#60a5fa',
-                                    textDecoration: 'underline',
-                                    cursor: 'pointer',
-                                    padding: 0,
-                                    font: 'inherit'
+                                  style={linkStyle}
+                                >
+                                  {props.children}
+                                </button>
+                              )
+                            }
+                            if (props.href?.startsWith('#planet-')) {
+                              const body = props.href.replace('#planet-', '')
+                              return (
+                                <button
+                                  className="track-link-button"
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    if (body) setActivePlanet(body)
                                   }}
+                                  style={linkStyle}
                                 >
                                   {props.children}
                                 </button>

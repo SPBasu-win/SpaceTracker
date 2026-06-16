@@ -71,6 +71,31 @@ function computeBody(name: string, body: Body, obs: Observer, at: Date): SkyBody
   return sky
 }
 
+const BODY_BY_NAME: Record<string, Body> = {
+  sun: Body.Sun,
+  moon: Body.Moon,
+  mercury: Body.Mercury,
+  venus: Body.Venus,
+  mars: Body.Mars,
+  jupiter: Body.Jupiter,
+  saturn: Body.Saturn,
+  uranus: Body.Uranus,
+  neptune: Body.Neptune,
+}
+
+/** Compute a single named body (case-insensitive) for an observer. Returns null if unknown. */
+export function computeSkyBody(
+  name: string,
+  observer: { latitude: number; longitude: number },
+  at: Date = new Date()
+): SkyBody | null {
+  const body = BODY_BY_NAME[name.trim().toLowerCase()]
+  if (body === undefined) return null
+  const obs = new Observer(observer.latitude, observer.longitude, 0)
+  const canonical = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
+  return computeBody(canonical, body, obs, at)
+}
+
 /** Compute the Sun, Moon and planets for an observer at a given time. */
 export function computeSkyBodies(
   observer: { latitude: number; longitude: number },

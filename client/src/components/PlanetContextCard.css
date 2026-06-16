@@ -1,0 +1,119 @@
+.planet-card {
+  position: absolute;
+  top: 88px;
+  left: 24px;
+  z-index: 30;
+  width: 280px;
+  padding: 18px;
+  background: rgba(12, 20, 33, 0.92);
+  backdrop-filter: blur(14px);
+  border: 1px solid #1a2a3d;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  color: #e6edf3;
+  animation: planetCardIn 0.2s ease;
+}
+
+@keyframes planetCardIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.planet-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.planet-card-head h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #c0caf5;
+}
+
+.planet-card-close {
+  background: none;
+  border: none;
+  color: #9eb0c5;
+  cursor: pointer;
+  padding: 4px;
+  min-height: unset;
+  border-radius: 6px;
+}
+
+.planet-card-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.planet-visibility {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+.planet-visibility.up {
+  color: #9ae66e;
+  background: rgba(154, 230, 110, 0.12);
+}
+
+.planet-visibility.down {
+  color: #9eb0c5;
+  background: rgba(158, 176, 197, 0.1);
+}
+
+.planet-card-stats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 16px;
+  margin: 0 0 16px;
+  font-size: 13px;
+}
+
+.planet-card-stats dt {
+  color: #9eb0c5;
+}
+
+.planet-card-stats dd {
+  margin: 0;
+  text-align: right;
+  font-family: ui-monospace, monospace;
+  color: #e6edf3;
+}
+
+.planet-card-note {
+  color: #9eb0c5;
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+
+.planet-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.planet-card-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: #142033;
+  border: 1px solid #2b3a4d;
+  color: #edf7ff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.planet-card-actions button:hover {
+  background: rgba(122, 162, 247, 0.18);
+  border-color: #7aa2f7;
+}

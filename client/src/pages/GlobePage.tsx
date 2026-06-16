@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Star, Map as MapIcon, Image as ImageIcon, Box, Maximize2, Minimize2, MousePointer2, Hand, Search, X, Globe2, Compass } from 'lucide-react'
 import { CesiumGlobe } from '../components/CesiumGlobe'
 import { SkyMapCanvas } from '../components/SkyMapCanvas'
+import { CelestialEventsPanel } from '../components/CelestialEventsPanel'
+import { PlanetContextCard } from '../components/PlanetContextCard'
 import { LocationPrompt } from '../components/LocationPrompt'
 import { useGlobeStore } from '../stores/globeStore'
 import { useTrackingStore } from '../stores/trackingStore'
@@ -31,6 +33,7 @@ export function GlobePage() {
       <CesiumGlobe />
       {isSkyMap && <SkyMapCanvas />}
       <LocationPrompt />
+      <PlanetContextCard />
 
       {/* Globe / Sky Map view toggle */}
       <div className="view-mode-toggle">
@@ -167,6 +170,8 @@ export function GlobePage() {
           </>
         )}
       </aside>
+
+      <CelestialEventsPanel />
     </div>
   )
 }

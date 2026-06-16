@@ -1,0 +1,153 @@
+.events-panel {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  z-index: 25;
+  width: 320px;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  background: rgba(12, 20, 33, 0.9);
+  backdrop-filter: blur(14px);
+  border: 1px solid #1a2a3d;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  color: #e6edf3;
+  transition: right 0.3s ease;
+}
+
+/* Shift left when the chat panel is open so they don't overlap. */
+.events-panel.shifted {
+  right: calc(400px + 24px);
+}
+
+.events-panel.collapsed {
+  width: 220px;
+}
+
+.events-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #1a2a3d;
+}
+
+.events-panel.collapsed .events-head {
+  border-bottom: none;
+}
+
+.events-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #c0caf5;
+}
+
+.events-collapse {
+  background: none;
+  border: none;
+  color: #9eb0c5;
+  cursor: pointer;
+  padding: 2px;
+  min-height: unset;
+}
+
+.events-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.event-row {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+
+.event-row:hover {
+  background: rgba(122, 162, 247, 0.06);
+  border-color: #1a2a3d;
+}
+
+.event-icon {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.event-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.event-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.event-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e6edf3;
+}
+
+.event-when {
+  font-size: 11px;
+  color: #7aa2f7;
+  white-space: nowrap;
+}
+
+.event-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #565f89;
+  font-family: ui-monospace, monospace;
+  margin: 2px 0 4px;
+}
+
+.event-desc {
+  margin: 0;
+  font-size: 12px;
+  color: #9eb0c5;
+  line-height: 1.4;
+}
+
+.events-empty {
+  padding: 16px;
+  text-align: center;
+  color: #565f89;
+  font-size: 13px;
+}
+
+.events-ask-ai {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 6px 10px 12px;
+  padding: 9px 12px;
+  background: rgba(122, 162, 247, 0.12);
+  border: 1px solid #2b3a4d;
+  color: #7aa2f7;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.events-ask-ai:hover {
+  background: rgba(122, 162, 247, 0.2);
+  border-color: #7aa2f7;
+}
