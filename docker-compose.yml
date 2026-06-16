@@ -1,22 +1,60 @@
 services:
   postgres:
     image: postgis/postgis:16-3.4
-
     container_name: spacetrack-db
-
     restart: unless-stopped
-
     environment:
       POSTGRES_DB: spacetrack
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-
     ports:
-      - "5432:5432"
-
+      - "5433:5432"
     volumes:
       - postgres_data_pg16:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d spacetrack"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: spacetrack-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/spacetrack
+      PORT: 3000
+      DISABLE_SYNC_JOB: ${DISABLE_SYNC_JOB:-true}
+      TLE_MAX_AGE_HOURS: ${TLE_MAX_AGE_HOURS:-24}
+      SPACE_TRACK_USERNAME: ${SPACE_TRACK_USERNAME:-}
+      SPACE_TRACK_PASSWORD: ${SPACE_TRACK_PASSWORD:-}
+      AI_PROVIDER_PRIORITY: ${AI_PROVIDER_PRIORITY:-anthropic,openai,google,groq,openrouter}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GOOGLE_AI_API_KEY: ${GOOGLE_AI_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api}
+        VITE_CESIUM_ION_TOKEN: ${VITE_CESIUM_ION_TOKEN:-}
+    container_name: spacetrack-web
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    depends_on:
+      - server
 
 volumes:
-  postgres_data:
   postgres_data_pg16:

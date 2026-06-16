@@ -1,5 +1,6 @@
 import "dotenv/config";
-import { AssetClass } from "@prisma/client";
+import prismaPkg from "@prisma/client";
+const { AssetClass } = prismaPkg;
 import { prisma } from "../src/lib/prisma";
 import { upsertTlePayloads } from "../src/services/sync.service";
 const issCatalogNumber = 25544;
