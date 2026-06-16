@@ -29,6 +29,8 @@ export interface ProviderConfig {
   maxTokens?: number;
 }
 
-export type GlobeAction = 
+export type GlobeAction =
   | { type: 'FLY_TO'; catalogNumber: number }
-  | { type: 'FILTER_CATEGORY'; assetClass: string };
+  | { type: 'FILTER_CATEGORY'; assetClass: string }
+  | { type: 'FLY_TO_PLANET'; body: string }
+  | { type: 'FLY_TO_LOCATION'; latitude: number; longitude: number; label?: string };

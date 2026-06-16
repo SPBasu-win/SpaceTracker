@@ -93,10 +93,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }))
       
       if (response.globeAction) {
-        if (response.globeAction.type === 'FLY_TO' && response.globeAction.catalogNumber) {
-          useGlobeStore.getState().setTargetCatalogNumber(response.globeAction.catalogNumber)
-        } else if (response.globeAction.type === 'FILTER_CATEGORY' && response.globeAction.assetClass) {
-          useGlobeStore.getState().setFilterCategory(response.globeAction.assetClass)
+        const action = response.globeAction
+        if (action.type === 'FLY_TO' && action.catalogNumber) {
+          useGlobeStore.getState().setTargetCatalogNumber(action.catalogNumber)
+        } else if (action.type === 'FILTER_CATEGORY' && action.assetClass) {
+          useGlobeStore.getState().setFilterCategory(action.assetClass)
+        } else if (action.type === 'FLY_TO_PLANET' && action.body) {
+          useGlobeStore.getState().setActivePlanet(action.body)
+        } else if (action.type === 'FLY_TO_LOCATION' && action.latitude != null && action.longitude != null) {
+          useGlobeStore.getState().setFlyToLocation({ latitude: action.latitude, longitude: action.longitude, label: action.label })
         }
       }
     } catch (error: any) {

@@ -12,6 +12,7 @@ import {
   countSatellitesTool
 } from '../ai/tools/orbital-tools.js';
 import { geocodeLocationTool } from '../ai/tools/web-tools.js';
+import { getSkyObjectsOverheadTool, getPlanetPositionTool } from '../ai/tools/astronomy-tools.js';
 
 export class AIService {
   private router: AIRouter;
@@ -29,6 +30,9 @@ export class AIService {
     this.toolRegistry.register(getSatelliteInfoTool);
     this.toolRegistry.register(countSatellitesTool);
     this.toolRegistry.register(geocodeLocationTool);
+    // Project Zenith celestial-body tools
+    this.toolRegistry.register(getSkyObjectsOverheadTool);
+    this.toolRegistry.register(getPlanetPositionTool);
   }
 
   public getHealth() {
@@ -125,6 +129,10 @@ export class AIService {
           } else if (toolCall.name === 'satellite_lookup' || toolCall.name === 'count_satellites') {
             if (args && args.assetClass) {
               globeAction = { type: 'FILTER_CATEGORY', assetClass: args.assetClass };
+            }
+          } else if (toolCall.name === 'get_planet_position') {
+            if (args && args.body) {
+              globeAction = { type: 'FLY_TO_PLANET', body: String(args.body) };
             }
           }
         } catch (e) {

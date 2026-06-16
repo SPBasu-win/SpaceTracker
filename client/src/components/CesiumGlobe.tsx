@@ -27,6 +27,8 @@ export function CesiumGlobe() {
   const targetCatalogNumber = useGlobeStore((state) => state.targetCatalogNumber)
   const flyToTrigger = useGlobeStore((state) => state.flyToTrigger)
   const filterCategory = useGlobeStore((state) => state.filterCategory)
+  const flyToLocation = useGlobeStore((state) => state.flyToLocation)
+  const locationFlyTrigger = useGlobeStore((state) => state.locationFlyTrigger)
   
   const prevSelectedRef = useRef<number | null>(null)
 
@@ -481,6 +483,24 @@ export function CesiumGlobe() {
       applyBillboardStyle(billboard, asset, filterCategory, !!isSelected)
     }
   }, [filterCategory])
+
+  // Project Zenith: fly the camera to an arbitrary geographic location.
+  // Used by AI FLY_TO_LOCATION actions and the History walkthrough launch sites.
+  useEffect(() => {
+    const viewer = viewerRef.current
+    if (!viewer || !flyToLocation) return
+    // Stop following any tracked satellite so the camera is free to move.
+    viewer.trackedEntity = undefined
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(
+        flyToLocation.longitude,
+        flyToLocation.latitude,
+        2_500_000
+      ),
+      orientation: { heading: 0, pitch: Cesium.Math.toRadians(-65), roll: 0 },
+      duration: 1.8,
+    })
+  }, [locationFlyTrigger, flyToLocation])
 
   useEffect(() => {
     if (!billboardMapRef.current) return

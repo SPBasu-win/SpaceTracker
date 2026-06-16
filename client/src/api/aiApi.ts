@@ -1,9 +1,13 @@
 import { apiClient } from './client'
 
 export interface GlobeAction {
-  type: 'FLY_TO' | 'FILTER_CATEGORY'
+  type: 'FLY_TO' | 'FILTER_CATEGORY' | 'FLY_TO_PLANET' | 'FLY_TO_LOCATION'
   catalogNumber?: number
   assetClass?: string
+  body?: string
+  latitude?: number
+  longitude?: number
+  label?: string
 }
 
 export interface ChatResponse {
