@@ -44,7 +44,7 @@ export class AIService {
     };
   }
 
-  public async chat(sessionId: string, userMessage: string, location?: { latitude: number; longitude: number; locationName?: string | null }) {
+  public async chat(sessionId: string, userMessage: string, location?: { latitude: number; longitude: number; locationName?: string | null }, extraContext?: string) {
     if (userMessage.length > 1000) {
       throw new Error('Message too long (max 1000 chars)');
     }
@@ -67,7 +67,7 @@ export class AIService {
 
     // Construct full messages array with system prompt
     const messages: ChatMessage[] = [
-      { role: 'system', content: getSystemPrompt(location) },
+      { role: 'system', content: getSystemPrompt(location, extraContext) },
       ...history
     ];
 

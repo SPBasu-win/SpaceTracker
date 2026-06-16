@@ -17,7 +17,7 @@ interface ChatState {
   isLoading: boolean
   turnsRemaining: number | null
   error: string | null
-  sendMessage: (text: string) => Promise<void>
+  sendMessage: (text: string, context?: string) => Promise<void>
   clearChat: () => void
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
@@ -52,7 +52,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }, 1000)
   },
   
-  sendMessage: async (text: string) => {
+  sendMessage: async (text: string, context?: string) => {
     const { sessionId, messages, cooldownRemaining } = get()
     
     if (cooldownRemaining > 0) return
@@ -76,7 +76,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const { latitude, longitude, locationName } = useObserverStore.getState()
       const location = latitude && longitude ? { latitude, longitude, locationName } : undefined
       
-      const response = await sendChatMessage(text, sessionId, location)
+      const response = await sendChatMessage(text, sessionId, location, context)
       
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),

@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { BarChart3, Crosshair, Globe2, List, Settings, Star, MessageSquare, Menu } from 'lucide-react'
+import { BarChart3, Crosshair, Globe2, List, Settings, Star, MessageSquare, Menu, Clock } from 'lucide-react'
 import { ChatPanel } from '../components/ChatPanel'
 import { useChatStore } from '../stores/chatStore'
 
 const links = [
   { to: '/dashboard', label: 'Dashboard', icon: BarChart3 },
   { to: '/globe', label: 'Globe', icon: Globe2 },
+  { to: '/history', label: 'History', icon: Clock },
   { to: '/assets', label: 'Assets', icon: List },
   { to: '/tracked', label: 'Tracked', icon: Star },
   { to: '/settings', label: 'Settings', icon: Settings },

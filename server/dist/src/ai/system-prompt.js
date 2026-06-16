@@ -1,4 +1,4 @@
-export function getSystemPrompt(location) {
+export function getSystemPrompt(location, extraContext) {
     let locationContext = '';
     if (location && location.latitude && location.longitude) {
         locationContext = `
@@ -9,10 +9,20 @@ The user is currently located at:
 ${location.locationName ? `- Location Name: ${location.locationName}` : ''}
 Please use these coordinates automatically when predicting passes, finding overhead satellites, or discussing celestial events for the user. Do not ask the user for their location.`;
     }
+    // Project Zenith History Walkthrough: when the client supplies narrator context,
+    // the assistant acts as a space-history narrator grounded in the current era.
+    let historyContext = '';
+    if (extraContext) {
+        historyContext = `
+
+HISTORY NARRATOR MODE:
+The user is exploring the Space History Walkthrough. Act as an engaging, accurate space-history narrator. Ground your answers in the era and missions described below, and keep responses vivid but concise. You may still use your tools for live data (e.g. tracking an active historic satellite).
+${extraContext}`;
+    }
     return `You are SpaceTracker AI, a specialized space situational awareness and astronomy assistant.
 
 Your primary purpose is to help users track satellites, predict orbital passes, and understand space-related data, as well as answer general questions about celestial bodies and astronomy. You have access to real-time orbital data from Space-Track and CelesTrak, and you can propagate orbits using satellite.js. You also have access to native web search for real-time information about astronomical events.
-${locationContext}
+${locationContext}${historyContext}
 
 CAPABILITIES:
 - Look up satellites by name, catalog number (NORAD ID), or class (PAYLOAD, DEBRIS, etc.)

@@ -13,6 +13,7 @@ export function CesiumGlobe() {
   const billboardsRef = useRef<Cesium.BillboardCollection | null>(null)
   const billboardMapRef = useRef<BillboardMap>(new Map())
   const geoJsonRef = useRef<Cesium.GeoJsonDataSource | null>(null)
+  const ghostOrbitsRef = useRef<Cesium.Entity[]>([])
   const hoveredRef = useRef<{ billboard: Cesium.Billboard, originalColor: Cesium.Color } | null>(null)
   const hoverTimeoutRef = useRef<number | null>(null)
   const [hoverInfo, setHoverInfo] = useState<{
@@ -29,6 +30,8 @@ export function CesiumGlobe() {
   const filterCategory = useGlobeStore((state) => state.filterCategory)
   const flyToLocation = useGlobeStore((state) => state.flyToLocation)
   const locationFlyTrigger = useGlobeStore((state) => state.locationFlyTrigger)
+  const historyMode = useGlobeStore((state) => state.historyMode)
+  const historyOrbits = useGlobeStore((state) => state.historyOrbits)
   
   const prevSelectedRef = useRef<number | null>(null)
 
@@ -502,6 +505,38 @@ export function CesiumGlobe() {
     })
   }, [locationFlyTrigger, flyToLocation])
 
+  // Project Zenith History mode: hide the live satellite swarm so historic
+  // "ghost orbit" rings read clearly against the globe.
+  useEffect(() => {
+    if (billboardsRef.current) billboardsRef.current.show = !historyMode
+  }, [historyMode])
+
+  // Render representative historic orbits as tilted ghost rings.
+  useEffect(() => {
+    const viewer = viewerRef.current
+    if (!viewer) return
+
+    // Clear any previously drawn ghost orbits.
+    for (const e of ghostOrbitsRef.current) viewer.entities.remove(e)
+    ghostOrbitsRef.current = []
+
+    for (const orbit of historyOrbits) {
+      // Skip non-LEO/MEO rings (e.g. deep-space L2) that would not read as a ring.
+      if (orbit.altitudeKm > 50_000) continue
+      const positions = buildGhostOrbitPositions(orbit.inclinationDeg, orbit.altitudeKm, orbit.raanDeg ?? 0)
+      const color = Cesium.Color.fromCssColorString(orbit.color).withAlpha(0.85)
+      const entity = viewer.entities.add({
+        polyline: {
+          positions,
+          width: 2,
+          arcType: Cesium.ArcType.NONE,
+          material: color,
+        },
+      })
+      ghostOrbitsRef.current.push(entity)
+    }
+  }, [historyOrbits])
+
   useEffect(() => {
     if (!billboardMapRef.current) return
 
@@ -625,4 +660,32 @@ function colorForClass(assetClass: GlobeAsset['assetClass']) {
   if (assetClass === 'COMMUNICATION') return Cesium.Color.CYAN
   if (assetClass === 'WEATHER' || assetClass === 'EARTH_OBSERVATION') return Cesium.Color.GOLD
   return Cesium.Color.WHITE
+}
+
+/**
+ * Build a representative circular orbit ring (in the Cesium FIXED frame) from an
+ * inclination, altitude and ascending-node angle. Used to draw historic "ghost
+ * orbits" — a visual approximation, not a propagated ground track.
+ */
+function buildGhostOrbitPositions(inclinationDeg: number, altitudeKm: number, raanDeg: number): Cesium.Cartesian3[] {
+  const earthRadius = 6_378_137
+  const r = earthRadius + altitudeKm * 1000
+  const inc = Cesium.Math.toRadians(inclinationDeg)
+  const raan = Cesium.Math.toRadians(raanDeg)
+  const positions: Cesium.Cartesian3[] = []
+  for (let deg = 0; deg <= 360; deg += 4) {
+    const t = Cesium.Math.toRadians(deg)
+    // Circle in the orbital plane.
+    const x0 = r * Math.cos(t)
+    const y0 = r * Math.sin(t)
+    // Tilt by inclination about the X axis.
+    const x1 = x0
+    const y1 = y0 * Math.cos(inc)
+    const z1 = y0 * Math.sin(inc)
+    // Rotate by RAAN about the Z axis.
+    const x2 = x1 * Math.cos(raan) - y1 * Math.sin(raan)
+    const y2 = x1 * Math.sin(raan) + y1 * Math.cos(raan)
+    positions.push(new Cesium.Cartesian3(x2, y2, z1))
+  }
+  return positions
 }

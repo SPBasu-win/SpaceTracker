@@ -31,7 +31,7 @@ export class AIService {
             model: provider?.modelId() || 'none'
         };
     }
-    async chat(sessionId, userMessage, location) {
+    async chat(sessionId, userMessage, location, extraContext) {
         if (userMessage.length > 1000) {
             throw new Error('Message too long (max 1000 chars)');
         }
@@ -49,7 +49,7 @@ export class AIService {
         history = chatMemory.getHistory(sessionId); // reload history
         // Construct full messages array with system prompt
         const messages = [
-            { role: 'system', content: getSystemPrompt(location) },
+            { role: 'system', content: getSystemPrompt(location, extraContext) },
             ...history
         ];
         let toolsUsed = [];

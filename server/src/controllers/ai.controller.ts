@@ -5,7 +5,7 @@ import { randomUUID } from 'crypto';
 
 export async function chat(req: Request, res: Response) {
   try {
-    const { message, latitude, longitude, locationName } = req.body;
+    const { message, latitude, longitude, locationName, context } = req.body;
     let { sessionId } = req.body;
 
     if (!message || typeof message !== 'string') {
@@ -17,7 +17,8 @@ export async function chat(req: Request, res: Response) {
     }
 
     const location = latitude && longitude ? { latitude, longitude, locationName } : undefined;
-    const response = await aiService.chat(sessionId, message, location);
+    const extraContext = typeof context === 'string' && context.trim() ? context.slice(0, 1500) : undefined;
+    const response = await aiService.chat(sessionId, message, location, extraContext);
     return res.json(response);
 
   } catch (error: any) {

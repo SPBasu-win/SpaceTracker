@@ -1,0 +1,342 @@
+.history-page {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* Satellite-count ticker (top-centre) */
+.history-ticker {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 22px;
+  background: rgba(12, 20, 33, 0.86);
+  backdrop-filter: blur(12px);
+  border: 1px solid #1a2a3d;
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.history-ticker-value {
+  font-size: 26px;
+  font-weight: 700;
+  font-family: ui-monospace, monospace;
+  color: #7aa2f7;
+  letter-spacing: 0.5px;
+}
+
+.history-ticker-label {
+  font-size: 11px;
+  color: #9eb0c5;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+/* Chapter side panel */
+.history-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 25;
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+  overflow-y: auto;
+  background: rgba(9, 15, 25, 0.92);
+  backdrop-filter: blur(16px);
+  border-right: 1px solid #1a2a3d;
+  color: #e6edf3;
+}
+
+.history-panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #7aa2f7;
+}
+
+.history-progress {
+  height: 6px;
+  background: #16243a;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.history-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #7aa2f7);
+  transition: width 0.4s ease;
+}
+
+.history-progress-label {
+  font-size: 11px;
+  color: #565f89;
+  font-family: ui-monospace, monospace;
+}
+
+.history-era h1 {
+  margin: 0;
+  font-size: 24px;
+  color: #c0caf5;
+  line-height: 1.15;
+}
+
+.history-era-period {
+  display: inline-block;
+  margin: 4px 0 8px;
+  font-size: 13px;
+  color: #7aa2f7;
+  font-family: ui-monospace, monospace;
+}
+
+.history-era-blurb {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #9eb0c5;
+}
+
+.history-missions h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: #565f89;
+}
+
+.history-mission-chip {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 10px 12px;
+  background: #0c1421;
+  border: 1px solid #1a2a3d;
+  border-radius: 8px;
+  color: #e6edf3;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.history-mission-chip:hover {
+  border-color: #7aa2f7;
+  background: rgba(122, 162, 247, 0.08);
+}
+
+.history-mission-chip.selected {
+  border-color: #7aa2f7;
+  background: rgba(122, 162, 247, 0.14);
+}
+
+.history-mission-name {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-mission-year {
+  font-size: 12px;
+  color: #565f89;
+  font-family: ui-monospace, monospace;
+}
+
+.history-status {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.history-status.active { color: #9ae66e; background: rgba(154, 230, 110, 0.14); }
+.history-status.debris { color: #f08080; background: rgba(240, 128, 128, 0.14); }
+.history-status.deorbited { color: #9eb0c5; background: rgba(158, 176, 197, 0.12); }
+
+.history-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  background: #142033;
+  border: 1px solid #2b3a4d;
+  color: #edf7ff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.history-nav button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.history-narrate {
+  flex: 1;
+  justify-content: center;
+  background: rgba(122, 162, 247, 0.14) !important;
+  border-color: #2b3a4d;
+  color: #7aa2f7 !important;
+}
+
+.history-narrate:hover {
+  background: rgba(122, 162, 247, 0.24) !important;
+}
+
+.history-era-dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.history-dot {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: #1a2a3d;
+  cursor: pointer;
+}
+
+.history-dot.on {
+  background: #7aa2f7;
+  box-shadow: 0 0 8px rgba(122, 162, 247, 0.7);
+}
+
+.history-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 11px;
+  color: #565f89;
+}
+
+/* Mission detail card */
+.history-mission-card {
+  position: absolute;
+  top: 88px;
+  right: 24px;
+  z-index: 30;
+  width: 320px;
+  padding: 18px;
+  background: rgba(12, 20, 33, 0.93);
+  backdrop-filter: blur(14px);
+  border: 1px solid #1a2a3d;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  color: #e6edf3;
+  animation: historyCardIn 0.2s ease;
+}
+
+@keyframes historyCardIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.history-mission-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.history-mission-card-head h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #c0caf5;
+}
+
+.history-mission-card-head button {
+  background: none;
+  border: none;
+  color: #9eb0c5;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.history-mission-stats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 5px 14px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.history-mission-stats dt { color: #9eb0c5; }
+.history-mission-stats dd {
+  margin: 0;
+  text-align: right;
+  color: #e6edf3;
+}
+
+.history-mission-desc {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #9eb0c5;
+}
+
+.history-mission-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-mission-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.history-track-live {
+  background: #3b82f6;
+  border: 1px solid #3b82f6;
+  color: #fff;
+}
+
+.history-track-live:hover { background: #2f6fd6; }
+
+.history-mission-ask {
+  background: #142033;
+  border: 1px solid #2b3a4d;
+  color: #edf7ff;
+}
+
+.history-mission-ask:hover {
+  background: rgba(122, 162, 247, 0.18);
+  border-color: #7aa2f7;
+}

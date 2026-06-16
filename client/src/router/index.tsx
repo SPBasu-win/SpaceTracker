@@ -6,6 +6,7 @@ import { AssetsPage } from '../pages/AssetsPage'
 import { AssetDetailPage } from '../pages/AssetDetailPage'
 import { TrackedPage } from '../pages/TrackedPage'
 import { SettingsPage } from '../pages/SettingsPage'
+import { HistoryPage } from '../pages/HistoryPage'
 
 export const router = createBrowserRouter([
   {
@@ -15,6 +16,7 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="/dashboard" replace /> },
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'globe', element: <GlobePage /> },
+      { path: 'history', element: <HistoryPage /> },
       { path: 'assets', element: <AssetsPage /> },
       { path: 'assets/:catalogNumber', element: <AssetDetailPage /> },
       { path: 'tracked', element: <TrackedPage /> },
