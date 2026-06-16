@@ -1,4 +1,5 @@
-import { AssetClass } from "@prisma/client";
+import prismaPkg from "@prisma/client";
+const { AssetClass: AssetClassEnum } = prismaPkg;
 import * as orbitalService from "../services/orbital.service.js";
 import * as astronomyService from "../services/astronomy.service.js";
 import { runSyncJob } from "../jobs/sync.job.js";
@@ -88,7 +89,7 @@ function optionalString(value) {
 function optionalAssetClass(value) {
     if (value === undefined)
         return undefined;
-    if (typeof value !== "string" || !(value in AssetClass)) {
+    if (typeof value !== "string" || !(value in AssetClassEnum)) {
         throw Object.assign(new Error("assetClass is invalid"), { statusCode: 400 });
     }
     return value;

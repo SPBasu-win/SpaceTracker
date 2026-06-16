@@ -1,4 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import prismaPkg from "@prisma/client";
+const { PrismaClient } = prismaPkg;
 export const prisma = global.prismaClient ??
     new PrismaClient({
         log: process.env.NODE_ENV === "production"

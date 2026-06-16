@@ -1,4 +1,8 @@
-import { AssetClass } from "@prisma/client";
+// @prisma/client is CommonJS: import the enum value via default import and keep
+// the type via `import type` so the compiled ESM output runs under `node`.
+import type { AssetClass } from "@prisma/client";
+import prismaPkg from "@prisma/client";
+const { AssetClass: AssetClassEnum } = prismaPkg;
 import { Request, Response } from "express";
 import * as orbitalService from "../services/orbital.service.js";
 import * as astronomyService from "../services/astronomy.service.js";
@@ -101,7 +105,7 @@ function optionalString(value: unknown) {
 
 function optionalAssetClass(value: unknown) {
   if (value === undefined) return undefined;
-  if (typeof value !== "string" || !(value in AssetClass)) {
+  if (typeof value !== "string" || !(value in AssetClassEnum)) {
     throw Object.assign(new Error("assetClass is invalid"), { statusCode: 400 });
   }
   return value as AssetClass;
