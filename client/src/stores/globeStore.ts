@@ -31,6 +31,7 @@ type GlobeState = {
   // Project Zenith History mode: hide live billboards + draw ghost orbits
   historyMode: boolean
   historyOrbits: GhostOrbit[]
+  pinnedLocation: { latitude: number; longitude: number } | null
   setSelected: (selected?: GlobeAsset) => void
   setFollowMode: (followMode: boolean) => void
   setMapStyle: (mapStyle: MapStyle) => void
@@ -42,6 +43,7 @@ type GlobeState = {
   setActivePlanet: (body: string | null) => void
   setHistoryMode: (on: boolean) => void
   setHistoryOrbits: (orbits: GhostOrbit[]) => void
+  setPinnedLocation: (loc: { latitude: number; longitude: number } | null) => void
 }
 
 export const useGlobeStore = create<GlobeState>((set) => ({
@@ -57,6 +59,7 @@ export const useGlobeStore = create<GlobeState>((set) => ({
   activePlanet: null,
   historyMode: false,
   historyOrbits: [],
+  pinnedLocation: null,
   setSelected: (selected) => set({ selected }),
   setFollowMode: (followMode) => set({ followMode }),
   setMapStyle: (mapStyle) => set({ mapStyle }),
@@ -68,4 +71,5 @@ export const useGlobeStore = create<GlobeState>((set) => ({
   setActivePlanet: (activePlanet) => set({ activePlanet }),
   setHistoryMode: (historyMode) => set({ historyMode }),
   setHistoryOrbits: (historyOrbits) => set({ historyOrbits }),
+  setPinnedLocation: (pinnedLocation) => set({ pinnedLocation }),
 }))

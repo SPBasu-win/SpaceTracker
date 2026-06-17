@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Star, Map as MapIcon, Image as ImageIcon, Box, Maximize2, Minimize2, MousePointer2, Hand, Search, X, Globe2, Compass, CheckCircle } from 'lucide-react'
+import { Star, Map as MapIcon, Image as ImageIcon, Box, Maximize2, Minimize2, MousePointer2, Hand, Search, X, Globe2, CheckCircle, MapPin } from 'lucide-react'
 import { CesiumGlobe } from '../components/CesiumGlobe'
-import { SkyMapCanvas } from '../components/SkyMapCanvas'
 import { CelestialEventsPanel } from '../components/CelestialEventsPanel'
+import { ZenithPanel } from '../components/ZenithPanel'
 import { PlanetContextCard } from '../components/PlanetContextCard'
 import { LocationPrompt } from '../components/LocationPrompt'
 import { useGlobeStore } from '../stores/globeStore'
@@ -45,28 +45,26 @@ export function GlobePage() {
       setToast('tracked')
     }
   }
-  const isSkyMap = viewMode === 'skymap'
+  const isZenith = viewMode === 'zenith'
 
   return (
     <div className="globe-page">
-      {/* Cesium stays mounted so the viewer + camera state persist across toggles */}
       <CesiumGlobe />
-      {isSkyMap && <SkyMapCanvas />}
       <LocationPrompt />
       <PlanetContextCard />
 
-      {/* Globe / Sky Map view toggle */}
+      {/* Globe / Zenith view toggle */}
       <div className="view-mode-toggle">
-        <button className={!isSkyMap ? 'active' : ''} onClick={() => setViewMode('globe')} title="3D Globe view">
+        <button className={viewMode === 'globe' ? 'active' : ''} onClick={() => setViewMode('globe')} title="3D Globe view">
           <Globe2 size={15} /> Globe
         </button>
-        <button className={isSkyMap ? 'active' : ''} onClick={() => setViewMode('skymap')} title="Zenith Sky Map view">
-          <Compass size={15} /> Sky Map
+        <button className={isZenith ? 'active zenith-mode-btn' : 'zenith-mode-btn'} onClick={() => setViewMode('zenith')} title="Click a location to see what's overhead">
+          <MapPin size={15} /> Zenith
         </button>
       </div>
 
       {/* Loading Progress Bar */}
-      {isLoading && !isSkyMap && (
+      {isLoading && (
         <div className="loading-overlay">
           <div className="loading-card">
             <div className="loading-text">
@@ -81,7 +79,7 @@ export function GlobePage() {
       )}
 
       {/* Tutorial Overlay */}
-      {showTutorial && !isSkyMap && (
+      {showTutorial && (
         <div className="tutorial-overlay">
           <div className="tutorial-card">
             <h2>Globe Controls</h2>
@@ -125,8 +123,11 @@ export function GlobePage() {
         </div>
       )}
 
-      {/* Map Style Controls (globe view only) */}
-      {!isSkyMap && (
+      {/* Zenith mode panel */}
+      {isZenith && <ZenithPanel />}
+
+      {/* Map Style Controls (globe view only, not in zenith mode) */}
+      {!isZenith && (
         <>
           <div id="altitude-indicator" className="altitude-indicator">
             Altitude: -- km
@@ -158,7 +159,7 @@ export function GlobePage() {
         </>
       )}
 
-      <aside className={`info-panel ${isInfoCollapsed ? 'collapsed' : ''} ${isChatOpen ? 'shifted' : ''}`}>
+      {!isZenith && <aside className={`info-panel ${isInfoCollapsed ? 'collapsed' : ''} ${isChatOpen ? 'shifted' : ''}`}>
         {isInfoCollapsed ? (
           <button onClick={() => setIsInfoCollapsed(false)} className="expand-btn" title="Expand Info">
             <Maximize2 size={18} />
@@ -200,7 +201,7 @@ export function GlobePage() {
             ) : <p>Select a satellite to inspect its current propagated state.</p>}
           </>
         )}
-      </aside>
+      </aside>}
 
       <CelestialEventsPanel />
     </div>

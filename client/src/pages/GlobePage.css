@@ -46,6 +46,46 @@
   to   { opacity: 0; }
 }
 
+/* View mode toggle (Globe / Zenith) */
+.view-mode-toggle {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  z-index: 20;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(12, 20, 33, 0.88);
+  backdrop-filter: blur(10px);
+  border: 1px solid #1a2a3d;
+  border-radius: 10px;
+}
+
+.view-mode-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #9eb0c5;
+  padding: 6px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  min-height: unset;
+}
+
+.view-mode-toggle button.active {
+  background: rgba(122, 162, 247, 0.2);
+  color: #7aa2f7;
+}
+
+.zenith-mode-btn.active {
+  color: #56d4dd !important;
+  border-color: rgba(86, 212, 221, 0.4) !important;
+  background: rgba(86, 212, 221, 0.1) !important;
+}
+
 .map-style-controls {
   position: absolute;
   bottom: 24px;

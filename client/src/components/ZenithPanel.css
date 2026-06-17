@@ -1,0 +1,277 @@
+.zenith-panel {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: 300px;
+  background: rgba(12, 20, 33, 0.92);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(86, 212, 221, 0.25);
+  border-radius: 14px;
+  color: #c0caf5;
+  z-index: 20;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  box-shadow: 0 0 24px rgba(86, 212, 221, 0.08);
+}
+
+.zenith-empty-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 20px 16px;
+  text-align: center;
+}
+
+.zenith-empty-hint p {
+  margin: 0;
+  font-size: 12px;
+  color: #4a5a73;
+  line-height: 1.5;
+}
+
+.zenith-pin-icon {
+  color: #56d4dd;
+  opacity: 0.4;
+}
+
+/* Location controls */
+.zenith-controls {
+  padding: 12px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-bottom: 1px solid rgba(86, 212, 221, 0.1);
+}
+
+.zenith-search-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.zenith-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.zenith-search-icon {
+  position: absolute;
+  left: 9px;
+  color: #4a5a73;
+  pointer-events: none;
+}
+
+.zenith-search-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(86, 212, 221, 0.15);
+  border-radius: 8px;
+  color: #c0caf5;
+  font-size: 12px;
+  padding: 7px 30px 7px 28px;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.zenith-search-input::placeholder { color: #3a4a60; }
+.zenith-search-input:focus { border-color: rgba(86, 212, 221, 0.4); }
+
+.zenith-search-spinner {
+  position: absolute;
+  right: 9px;
+  color: #56d4dd;
+}
+
+.zenith-search-error {
+  font-size: 11px;
+  color: #f08080;
+  padding-left: 4px;
+}
+
+.zenith-locate-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: rgba(86, 212, 221, 0.08);
+  border: 1px solid rgba(86, 212, 221, 0.2);
+  border-radius: 8px;
+  color: #56d4dd;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  width: 100%;
+}
+
+.zenith-locate-btn:hover:not(:disabled) {
+  background: rgba(86, 212, 221, 0.14);
+  border-color: rgba(86, 212, 221, 0.35);
+}
+
+.zenith-locate-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.zenith-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid rgba(86, 212, 221, 0.12);
+}
+
+.zenith-coords {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  color: #56d4dd;
+}
+
+.zenith-close {
+  background: transparent;
+  border: none;
+  color: #6b7fa3;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+.zenith-close:hover { color: #f08080; }
+
+.zenith-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 14px;
+  font-size: 12px;
+  color: #6b7fa3;
+}
+
+.zenith-spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ISS pass banner */
+.zenith-iss-pass {
+  padding: 10px 14px;
+  background: rgba(86, 212, 221, 0.07);
+  border-bottom: 1px solid rgba(86, 212, 221, 0.1);
+}
+
+.zenith-iss-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.zenith-iss-countdown {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: ui-monospace, monospace;
+  color: #56d4dd;
+}
+
+.zenith-iss-meta {
+  font-size: 11px;
+  color: #6b7fa3;
+}
+
+/* Sections */
+.zenith-section {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.zenith-section-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: #56d4dd;
+  margin-bottom: 4px;
+  opacity: 0.8;
+}
+
+.zenith-empty {
+  margin: 0;
+  font-size: 11px;
+  color: #4a5a73;
+  font-style: italic;
+}
+
+.zenith-sat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  padding: 3px 0;
+}
+
+.zenith-sat-name {
+  color: #c0caf5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.zenith-sat-el {
+  color: #7aa2f7;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.zenith-body-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 3px 0;
+}
+
+.zenith-body-name {
+  color: #ffd166;
+  font-weight: 600;
+  min-width: 60px;
+}
+
+.zenith-body-pos {
+  color: #9eb0c5;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+
+.zenith-body-phase {
+  color: #6b7fa3;
+  font-size: 10px;
+  margin-left: auto;
+}
+
+.zenith-footer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  font-size: 10px;
+  color: #3a4a60;
+}

@@ -175,6 +175,34 @@ export async function getOverheadAssets(observer: Required<Observer>) {
   return visible.sort((a, b) => b.elevation - a.elevation);
 }
 
+export async function getOrbitTrack(catalogNumber: number, minutesAhead = 95) {
+  const tle = await getLatestTleByCatalogNumber(catalogNumber);
+  if (!tle) throw new Error("No TLE available");
+
+  const points: { latitude: number; longitude: number; altitudeKm: number }[] = [];
+  const now = Date.now();
+  // Sample every 30 seconds for the full orbital period (~95 min for LEO)
+  const stepMs = 30_000;
+  const steps = Math.ceil((minutesAhead * 60_000) / stepMs);
+
+  for (let i = 0; i <= steps; i++) {
+    const at = new Date(now + i * stepMs);
+    try {
+      const { position } = propagateTle(tle.line1, tle.line2, at);
+      const gmst = satellite.gstime(at);
+      const geo = satellite.eciToGeodetic(position, gmst);
+      points.push({
+        latitude: satellite.degreesLat(geo.latitude),
+        longitude: normalizeLongitude(satellite.degreesLong(geo.longitude)),
+        altitudeKm: geo.height,
+      });
+    } catch {
+      continue;
+    }
+  }
+  return points;
+}
+
 export async function predictPasses(catalogNumber: number, observer: Observer, hoursAhead: number) {
   const tle = await getLatestTleByCatalogNumber(catalogNumber);
   if (!tle) throw new Error("No TLE available");

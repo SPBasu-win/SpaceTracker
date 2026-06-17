@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import * as Cesium from 'cesium'
 import { getGlobeAssets, fetchGlobeAsset } from '../api/orbitalApi'
+import { apiClient } from '../api/client'
 import { useGlobeStore } from '../stores/globeStore'
+import { useSkyStore } from '../stores/skyStore'
 import type { GlobeAsset } from '../types/orbital'
 
 type BillboardMap = Map<number, Cesium.Billboard>
@@ -32,7 +34,11 @@ export function CesiumGlobe() {
   const locationFlyTrigger = useGlobeStore((state) => state.locationFlyTrigger)
   const historyMode = useGlobeStore((state) => state.historyMode)
   const historyOrbits = useGlobeStore((state) => state.historyOrbits)
-  
+  const setPinnedLocation = useGlobeStore((state) => state.setPinnedLocation)
+  const viewMode = useSkyStore((state) => state.viewMode)
+  const pinEntityRef = useRef<Cesium.Entity | null>(null)
+  const orbitTrackRef = useRef<Cesium.Entity | null>(null)
+
   const prevSelectedRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -153,6 +159,44 @@ export function CesiumGlobe() {
 
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
     handler.setInputAction((movement: Cesium.ScreenSpaceEventHandler.PositionedEvent) => {
+      const currentViewMode = useSkyStore.getState().viewMode
+      if (currentViewMode === 'zenith') {
+        const cartesian = viewer.scene.pickPosition(movement.position)
+          ?? viewer.camera.pickEllipsoid(movement.position, viewer.scene.globe.ellipsoid)
+        if (Cesium.defined(cartesian)) {
+          const carto = Cesium.Cartographic.fromCartesian(cartesian)
+          const lat = Cesium.Math.toDegrees(carto.latitude)
+          const lon = Cesium.Math.toDegrees(carto.longitude)
+          useGlobeStore.getState().setPinnedLocation({ latitude: lat, longitude: lon })
+
+          // Draw / move the beacon pin entity
+          if (pinEntityRef.current) viewer.entities.remove(pinEntityRef.current)
+          pinEntityRef.current = viewer.entities.add({
+            position: Cesium.Cartesian3.fromDegrees(lon, lat),
+            point: {
+              pixelSize: 14,
+              color: Cesium.Color.fromCssColorString('#56d4dd'),
+              outlineColor: Cesium.Color.fromCssColorString('#56d4dd').withAlpha(0.35),
+              outlineWidth: 10,
+              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+            label: {
+              text: `${lat.toFixed(3)}°, ${lon.toFixed(3)}°`,
+              font: '12px monospace',
+              fillColor: Cesium.Color.fromCssColorString('#c0caf5'),
+              outlineColor: Cesium.Color.BLACK,
+              outlineWidth: 2,
+              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+              pixelOffset: new Cesium.Cartesian2(0, -28),
+              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+          })
+        }
+        return
+      }
+
       const picked = viewer.scene.pick(movement.position)
       if (Cesium.defined(picked) && picked.primitive && picked.id && (picked.id as any).asset) {
         const asset = (picked.id as any).asset as GlobeAsset
@@ -363,6 +407,71 @@ export function CesiumGlobe() {
       billboardMapRef.current.clear()
     }
   }, [setSelected])
+
+  // Clean up the pin beacon when leaving zenith mode
+  useEffect(() => {
+    if (viewMode !== 'zenith') {
+      const viewer = viewerRef.current
+      if (viewer && pinEntityRef.current) {
+        viewer.entities.remove(pinEntityRef.current)
+        pinEntityRef.current = null
+      }
+      setPinnedLocation(null)
+    }
+  }, [viewMode, setPinnedLocation])
+
+  // Draw orbit ground track when a satellite is selected
+  useEffect(() => {
+    const viewer = viewerRef.current
+    if (!viewer) return
+
+    // Clear previous track
+    if (orbitTrackRef.current) {
+      viewer.entities.remove(orbitTrackRef.current)
+      orbitTrackRef.current = null
+    }
+
+    if (!selected) return
+
+    apiClient.get<{ latitude: number; longitude: number; altitudeKm: number }[]>(
+      `/assets/${selected.catalogNumber}/track`
+    ).then(({ data: pts }) => {
+      if (!pts.length || viewer.isDestroyed()) return
+
+      // Split into segments at antimeridian crossings to avoid lines cutting through the globe
+      const segments: Cesium.Cartesian3[][] = []
+      let current: Cesium.Cartesian3[] = []
+      for (let i = 0; i < pts.length; i++) {
+        const p = pts[i]
+        if (i > 0 && Math.abs(p.longitude - pts[i - 1].longitude) > 180) {
+          if (current.length) segments.push(current)
+          current = []
+        }
+        current.push(Cesium.Cartesian3.fromDegrees(p.longitude, p.latitude, p.altitudeKm * 1000))
+      }
+      if (current.length) segments.push(current)
+
+      // Draw all segments as one entity with multiple polylines via a datasource hack:
+      // Use the first segment as the main entity, add siblings for the rest
+      const color = Cesium.Color.fromCssColorString('#7aa2f7').withAlpha(0.65)
+      const dashPattern = 65280 // dashed
+
+      segments.forEach((seg, idx) => {
+        const entity = viewer.entities.add({
+          polyline: {
+            positions: seg,
+            width: 1.8,
+            material: new Cesium.PolylineDashMaterialProperty({
+              color,
+              dashPattern,
+            }),
+            arcType: Cesium.ArcType.NONE,
+          },
+        })
+        if (idx === 0) orbitTrackRef.current = entity
+      })
+    }).catch(() => {/* silently ignore */})
+  }, [selected])
 
   useEffect(() => {
     const viewer = viewerRef.current

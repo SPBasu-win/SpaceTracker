@@ -70,6 +70,11 @@ export async function getPlanetPosition(req: Request, res: Response) {
   res.json({ ...position, ...riseSet });
 }
 
+export async function getOrbitTrack(req: Request, res: Response) {
+  const minutes = optionalNumber(req.query.minutes) ?? 95;
+  res.json(await orbitalService.getOrbitTrack(requiredCatalogNumber(req), minutes));
+}
+
 export async function getObservations(req: Request, res: Response) {
   res.json(await orbitalService.listObservations(optionalNumber(req.query.limit) ?? 100));
 }

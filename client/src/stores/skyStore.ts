@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type SkyViewMode = 'globe' | 'skymap'
+export type SkyViewMode = 'globe' | 'skymap' | 'zenith'
 
 type SkyState = {
   viewMode: SkyViewMode
@@ -19,7 +19,7 @@ export const useSkyStore = create<SkyState>((set) => ({
   showSatellites: true,
   showPlanets: true,
   setViewMode: (viewMode) => set({ viewMode }),
-  toggleViewMode: () => set((state) => ({ viewMode: state.viewMode === 'globe' ? 'skymap' : 'globe' })),
+  toggleViewMode: () => set((state) => ({ viewMode: state.viewMode === 'globe' ? 'skymap' : 'globe' as SkyViewMode })),
   setShowSatellites: (showSatellites) => set({ showSatellites }),
   setShowPlanets: (showPlanets) => set({ showPlanets }),
 }))
