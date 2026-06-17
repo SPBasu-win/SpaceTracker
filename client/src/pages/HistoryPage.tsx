@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Radio, MessageSquare, Rocket, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Radio, MessageSquare, Rocket, X, LogOut } from 'lucide-react'
 import { CesiumGlobe } from '../components/CesiumGlobe'
 import { useHistoryStore } from '../stores/historyStore'
 import { useGlobeStore, type GhostOrbit } from '../stores/globeStore'
@@ -86,6 +86,7 @@ export function HistoryPage() {
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
       if (e.key === 'ArrowRight') nextEra()
       else if (e.key === 'ArrowLeft') prevEra()
+      else if (e.key === 'Escape') navigate('/dashboard')
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -124,6 +125,11 @@ export function HistoryPage() {
   return (
     <div className="history-page">
       <CesiumGlobe />
+
+      {/* Exit button */}
+      <button className="history-exit-btn" onClick={() => navigate('/dashboard')} title="Exit History (Esc)">
+        <LogOut size={16} /> Exit
+      </button>
 
       {/* Satellite-count ticker */}
       <div className="history-ticker">
@@ -185,7 +191,7 @@ export function HistoryPage() {
             />
           ))}
         </div>
-        <p className="history-hint">Use ← → arrow keys to move between chapters</p>
+        <p className="history-hint">← → to navigate chapters · Esc to exit</p>
       </aside>
 
       {/* Mission detail card */}

@@ -1,3 +1,51 @@
+/* Track button */
+.track-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.track-btn.tracked {
+  color: #ffd166;
+  border-color: rgba(255, 209, 102, 0.4);
+  background: rgba(255, 209, 102, 0.08);
+}
+.track-btn.tracked:hover {
+  color: #f08080;
+  border-color: rgba(240, 128, 128, 0.4);
+  background: rgba(240, 128, 128, 0.08);
+}
+
+/* Toast notification */
+.track-toast {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  animation: toast-in 0.2s ease, toast-out 0.3s ease 1.9s forwards;
+}
+.track-toast.tracked {
+  background: rgba(154, 230, 110, 0.12);
+  border: 1px solid rgba(154, 230, 110, 0.35);
+  color: #9ae66e;
+}
+.track-toast.untracked {
+  background: rgba(240, 128, 128, 0.1);
+  border: 1px solid rgba(240, 128, 128, 0.3);
+  color: #f08080;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes toast-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
 .map-style-controls {
   position: absolute;
   bottom: 24px;

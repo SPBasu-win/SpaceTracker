@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Star, Map as MapIcon, Image as ImageIcon, Box, Maximize2, Minimize2, MousePointer2, Hand, Search, X, Globe2, Compass } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Star, Map as MapIcon, Image as ImageIcon, Box, Maximize2, Minimize2, MousePointer2, Hand, Search, X, Globe2, Compass, CheckCircle } from 'lucide-react'
 import { CesiumGlobe } from '../components/CesiumGlobe'
 import { SkyMapCanvas } from '../components/SkyMapCanvas'
 import { CelestialEventsPanel } from '../components/CelestialEventsPanel'
@@ -19,12 +19,32 @@ export function GlobePage() {
   const isLoading = useGlobeStore((state) => state.isLoading)
   const loadProgress = useGlobeStore((state) => state.loadProgress)
   const add = useTrackingStore((state) => state.add)
+  const remove = useTrackingStore((state) => state.remove)
+  const isTracked = useTrackingStore((state) => state.isTracked)
   const isChatOpen = useChatStore((state) => state.isOpen)
   const viewMode = useSkyStore((state) => state.viewMode)
   const setViewMode = useSkyStore((state) => state.setViewMode)
 
   const [isInfoCollapsed, setIsInfoCollapsed] = useState(false)
   const [showTutorial, setShowTutorial] = useState(true)
+  const [toast, setToast] = useState<'tracked' | 'untracked' | null>(null)
+
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 2200)
+    return () => clearTimeout(t)
+  }, [toast])
+
+  const toggleTrack = () => {
+    if (!selected) return
+    if (isTracked(selected.catalogNumber)) {
+      remove(selected.catalogNumber)
+      setToast('untracked')
+    } else {
+      add({ catalogNumber: selected.catalogNumber, name: selected.name })
+      setToast('tracked')
+    }
+  }
   const isSkyMap = viewMode === 'skymap'
 
   return (
@@ -162,9 +182,20 @@ export function GlobePage() {
                   <dt>Altitude</dt><dd>{formatNumber(selected.altitudeKm, 1)} km</dd>
                   <dt>Velocity</dt><dd>{formatNumber(selected.velocityKmps, 2)} km/s</dd>
                 </dl>
-                <button onClick={() => add({ catalogNumber: selected.catalogNumber, name: selected.name })}>
-                  <Star size={16} /> Track
+                <button
+                  className={`track-btn ${isTracked(selected.catalogNumber) ? 'tracked' : ''}`}
+                  onClick={toggleTrack}
+                >
+                  <Star size={16} fill={isTracked(selected.catalogNumber) ? 'currentColor' : 'none'} />
+                  {isTracked(selected.catalogNumber) ? 'Tracked' : 'Track'}
                 </button>
+
+                {toast && (
+                  <div className={`track-toast ${toast}`}>
+                    <CheckCircle size={14} />
+                    {toast === 'tracked' ? 'Tracked successfully!' : 'Removed from tracked'}
+                  </div>
+                )}
               </>
             ) : <p>Select a satellite to inspect its current propagated state.</p>}
           </>

@@ -37,6 +37,32 @@
   letter-spacing: 0.6px;
 }
 
+/* Exit button (top-right floating) */
+.history-exit-btn {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  background: rgba(12, 20, 33, 0.86);
+  backdrop-filter: blur(12px);
+  border: 1px solid #1a2a3d;
+  border-radius: 10px;
+  color: #9eb0c5;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.history-exit-btn:hover {
+  color: #f08080;
+  border-color: #f08080;
+  background: rgba(240, 128, 128, 0.08);
+}
+
 /* Chapter side panel */
 .history-panel {
   position: absolute;
