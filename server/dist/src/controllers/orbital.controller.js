@@ -13,10 +13,17 @@ export async function getAsset(req, res) {
     res.json(await orbitalService.getAssetByCatalogNumber(requiredCatalogNumber(req)));
 }
 export async function getPosition(req, res) {
-    res.json(await orbitalService.getCurrentPosition(requiredCatalogNumber(req)));
+    const at = req.query.timestamp ? new Date(String(req.query.timestamp)) : new Date();
+    const isHistorical = req.query.isHistorical === "true";
+    res.json(await orbitalService.getCurrentPosition(requiredCatalogNumber(req), at, isHistorical));
 }
 export async function getGlobeAssets(req, res) {
-    res.json(await orbitalService.getGlobeAssets(optionalNumber(req.query.limit) ?? 25_000));
+    const at = req.query.timestamp ? new Date(String(req.query.timestamp)) : new Date();
+    const isHistorical = req.query.isHistorical === "true";
+    const catalogNumbers = req.query.catalogNumbers
+        ? String(req.query.catalogNumbers).split(",").map(Number).filter(n => !isNaN(n))
+        : undefined;
+    res.json(await orbitalService.getGlobeAssets(optionalNumber(req.query.limit) ?? 25_000, at, isHistorical, catalogNumbers));
 }
 export async function getPasses(req, res) {
     const latitude = requiredNumber(req.query.latitude, "latitude");
@@ -56,6 +63,18 @@ export async function getPlanetPosition(req, res) {
     }
     const riseSet = astronomyService.getRiseSet(name, { latitude, longitude });
     res.json({ ...position, ...riseSet });
+}
+export async function getOrbitTrack(req, res) {
+    const minutes = optionalNumber(req.query.minutes) ?? 95;
+    const at = req.query.timestamp ? new Date(String(req.query.timestamp)) : new Date();
+    const isHistorical = req.query.isHistorical === "true";
+    res.json(await orbitalService.getOrbitTrack(requiredCatalogNumber(req), minutes, at, isHistorical));
+}
+export async function getHistoryEvents(req, res) {
+    const at = req.query.timestamp ? new Date(String(req.query.timestamp)) : new Date();
+    const latitude = optionalNumber(req.query.latitude) ?? 0;
+    const longitude = optionalNumber(req.query.longitude) ?? 0;
+    res.json(await orbitalService.getHistoryEvents(at, { latitude, longitude }));
 }
 export async function getObservations(req, res) {
     res.json(await orbitalService.listObservations(optionalNumber(req.query.limit) ?? 100));

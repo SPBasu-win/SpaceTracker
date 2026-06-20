@@ -1,97 +1,69 @@
+/* ZenithPanel.css — Premium redesign */
+
 .zenith-panel {
   position: absolute;
-  top: 24px;
-  right: 24px;
+  top: 84px;
+  right: 16px;
   width: 300px;
-  background: rgba(12, 20, 33, 0.92);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(86, 212, 221, 0.25);
-  border-radius: 14px;
-  color: #c0caf5;
-  z-index: 20;
+  background: rgba(13, 19, 35, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  z-index: 25;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  box-shadow: 0 0 24px rgba(86, 212, 221, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
-.zenith-empty-hint {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 20px 20px 16px;
-  text-align: center;
-}
-
-.zenith-empty-hint p {
-  margin: 0;
-  font-size: 12px;
-  color: #4a5a73;
-  line-height: 1.5;
-}
-
-.zenith-pin-icon {
-  color: #56d4dd;
-  opacity: 0.4;
-}
-
-/* Location controls */
+/* Search area */
 .zenith-controls {
-  padding: 12px 12px 10px;
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border-bottom: 1px solid rgba(86, 212, 221, 0.1);
 }
 
-.zenith-search-form {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+.zenith-search-form { display: flex; flex-direction: column; gap: 4px; }
 
 .zenith-search-wrap {
-  position: relative;
   display: flex;
   align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 7px 10px;
+  transition: border-color 0.15s;
 }
 
-.zenith-search-icon {
-  position: absolute;
-  left: 9px;
-  color: #4a5a73;
-  pointer-events: none;
+.zenith-search-wrap:focus-within {
+  border-color: rgba(76,201,240,0.3);
 }
+
+.zenith-search-icon { color: var(--text-muted); flex-shrink: 0; }
 
 .zenith-search-input {
-  width: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(86, 212, 221, 0.15);
-  border-radius: 8px;
-  color: #c0caf5;
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-primary);
   font-size: 12px;
-  padding: 7px 30px 7px 28px;
   outline: none;
-  transition: border-color 0.15s;
-  box-sizing: border-box;
+  min-height: unset;
+  padding: 0;
+  box-shadow: none;
 }
 
-.zenith-search-input::placeholder { color: #3a4a60; }
-.zenith-search-input:focus { border-color: rgba(86, 212, 221, 0.4); }
-
-.zenith-search-spinner {
-  position: absolute;
-  right: 9px;
-  color: #56d4dd;
-}
+.zenith-search-input::placeholder { color: var(--text-muted); }
 
 .zenith-search-error {
   font-size: 11px;
-  color: #f08080;
-  padding-left: 4px;
+  color: var(--danger);
+  padding: 2px 2px;
 }
+
+.zenith-search-spinner { color: var(--accent); }
 
 .zenith-locate-btn {
   display: flex;
@@ -99,172 +71,208 @@
   justify-content: center;
   gap: 6px;
   padding: 7px 12px;
-  background: rgba(86, 212, 221, 0.08);
-  border: 1px solid rgba(86, 212, 221, 0.2);
+  background: rgba(76,201,240,0.08);
+  border: 1px solid rgba(76,201,240,0.18);
   border-radius: 8px;
-  color: #56d4dd;
+  color: var(--accent);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-  width: 100%;
+  min-height: unset;
+  transition: all 0.15s;
 }
 
 .zenith-locate-btn:hover:not(:disabled) {
-  background: rgba(86, 212, 221, 0.14);
-  border-color: rgba(86, 212, 221, 0.35);
+  background: rgba(76,201,240,0.14);
+  box-shadow: 0 0 12px rgba(76,201,240,0.15);
 }
 
-.zenith-locate-btn:disabled {
-  opacity: 0.6;
-  cursor: default;
+/* Empty hint */
+.zenith-empty-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 20px;
+  color: var(--text-muted);
+  text-align: center;
 }
 
+.zenith-pin-icon { color: var(--accent); opacity: 0.6; }
+
+.zenith-empty-hint p { font-size: 12px; color: var(--text-muted); margin: 0; }
+
+/* Panel header */
 .zenith-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px 10px;
-  border-bottom: 1px solid rgba(86, 212, 221, 0.12);
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.02);
 }
 
 .zenith-coords {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-family: ui-monospace, monospace;
-  color: #56d4dd;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .zenith-close {
-  background: transparent;
+  background: none;
   border: none;
-  color: #6b7fa3;
+  color: var(--text-muted);
+  padding: 4px;
+  min-height: unset;
   cursor: pointer;
-  padding: 2px;
-  display: flex;
   border-radius: 4px;
-  transition: color 0.15s;
+  display: flex;
+  align-items: center;
 }
-.zenith-close:hover { color: #f08080; }
 
+.zenith-close:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+
+/* Loading */
 .zenith-loading {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 16px 14px;
+  padding: 20px;
+  color: var(--text-muted);
   font-size: 12px;
-  color: #6b7fa3;
 }
 
 .zenith-spin {
-  animation: spin 1s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ISS pass banner */
-.zenith-iss-pass {
-  padding: 10px 14px;
-  background: rgba(86, 212, 221, 0.07);
-  border-bottom: 1px solid rgba(86, 212, 221, 0.1);
+  animation: zenith-spin 1s linear infinite;
+  color: var(--accent);
 }
 
-.zenith-iss-row {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-top: 6px;
-}
-
-.zenith-iss-countdown {
-  font-size: 22px;
-  font-weight: 700;
-  font-family: ui-monospace, monospace;
-  color: #56d4dd;
-}
-
-.zenith-iss-meta {
-  font-size: 11px;
-  color: #6b7fa3;
-}
+@keyframes zenith-spin { to { transform: rotate(360deg); } }
 
 /* Sections */
 .zenith-section {
   padding: 10px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
 }
+
+.zenith-section:last-child { border-bottom: none; }
 
 .zenith-section-title {
   display: flex;
   align-items: center;
   gap: 5px;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.7px;
-  color: #56d4dd;
-  margin-bottom: 4px;
-  opacity: 0.8;
+  color: var(--text-muted);
+  margin-bottom: 8px;
 }
 
-.zenith-empty {
-  margin: 0;
+/* ISS pass */
+.zenith-iss-pass {
+  padding: 10px 14px;
+  background: rgba(76,201,240,0.05);
+  border-bottom: 1px solid rgba(76,201,240,0.1);
+}
+
+.zenith-iss-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.zenith-iss-countdown {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.zenith-iss-meta {
   font-size: 11px;
-  color: #4a5a73;
-  font-style: italic;
+  color: var(--text-secondary);
 }
 
+/* Satellites list */
 .zenith-sat-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  font-size: 12px;
-  padding: 3px 0;
+  justify-content: space-between;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
 }
 
+.zenith-sat-row:last-child { border-bottom: none; }
+
 .zenith-sat-name {
-  color: #c0caf5;
+  font-size: 12px;
+  color: var(--text-primary);
+  font-weight: 500;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 200px;
+  flex: 1;
+  min-width: 0;
+  margin-right: 8px;
 }
 
 .zenith-sat-el {
-  color: #7aa2f7;
-  font-family: ui-monospace, monospace;
   font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
   flex-shrink: 0;
 }
 
+/* Sky bodies */
 .zenith-body-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  padding: 3px 0;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 5px 0;
+  gap: 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
 }
 
+.zenith-body-row:last-child { border-bottom: none; }
+
 .zenith-body-name {
-  color: #ffd166;
+  font-size: 12px;
   font-weight: 600;
-  min-width: 60px;
+  color: var(--text-primary);
 }
 
 .zenith-body-pos {
-  color: #9eb0c5;
-  font-family: ui-monospace, monospace;
   font-size: 11px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .zenith-body-phase {
-  color: #6b7fa3;
   font-size: 10px;
-  margin-left: auto;
+  color: var(--warning);
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.2);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.zenith-empty {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 6px 0;
+  margin: 0;
 }
 
 .zenith-footer {
@@ -273,5 +281,6 @@
   gap: 5px;
   padding: 8px 14px;
   font-size: 10px;
-  color: #3a4a60;
+  color: var(--text-muted);
+  border-top: 1px solid rgba(255,255,255,0.04);
 }

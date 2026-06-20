@@ -32,6 +32,10 @@ export type AssetPosition = {
   velocityKmps: number
   inclinationDeg?: number
   timestamp: string
+  tleEpoch?: string
+  confidence?: 'HIGH' | 'MEDIUM' | 'LOW'
+  dataAgeHours?: number
+  source?: string
 }
 
 export type GlobeAsset = {
@@ -47,6 +51,9 @@ export type GlobeAsset = {
   velocityEcf?: { x: number, y: number, z: number }
   updatedAt: string
   tleEpoch: string
+  confidence?: 'HIGH' | 'MEDIUM' | 'LOW'
+  dataAgeHours?: number
+  source?: string
 }
 
 export type PassPrediction = {
