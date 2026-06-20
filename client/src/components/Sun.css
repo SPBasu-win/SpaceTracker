@@ -1,0 +1,133 @@
+.section-banner-sun {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle, #ffe259 0%, #ffa751 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 40px rgba(255, 167, 81, 0.6), 0 0 80px rgba(255, 226, 89, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+/* Star wrappers - absolutely positioned around the sun container */
+#star-1, #star-2, #star-3, #star-4, #star-5, #star-6, #star-7 {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+}
+
+#star-1 {
+  top: 10%;
+  left: 20%;
+  transform: scale(0.6) rotate(15deg);
+  animation: twinkle 2.5s infinite ease-in-out alternate;
+}
+
+#star-2 {
+  top: 25%;
+  right: 15%;
+  transform: scale(0.8) rotate(30deg);
+  animation: twinkle 3s infinite ease-in-out alternate;
+}
+
+#star-3 {
+  bottom: 20%;
+  left: 15%;
+  transform: scale(0.7) rotate(45deg);
+  animation: twinkle 2.8s infinite ease-in-out alternate;
+}
+
+#star-4 {
+  bottom: 15%;
+  right: 20%;
+  transform: scale(0.5) rotate(60deg);
+  animation: twinkle 3.2s infinite ease-in-out alternate;
+}
+
+#star-5 {
+  top: 50%;
+  left: 45%;
+  transform: scale(0.9) rotate(20deg);
+  animation: twinkle 3.5s infinite ease-in-out alternate;
+}
+
+#star-6 {
+  top: 15%;
+  right: 45%;
+  transform: scale(0.4) rotate(75deg);
+  animation: twinkle 2.2s infinite ease-in-out alternate;
+}
+
+#star-7 {
+  bottom: 40%;
+  right: 30%;
+  transform: scale(0.6) rotate(10deg);
+  animation: twinkle 2.6s infinite ease-in-out alternate;
+}
+
+@keyframes twinkle {
+  0% {
+    opacity: 0.3;
+    transform: scale(0.8) rotate(inherit);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.1) rotate(inherit);
+  }
+}
+
+/* 4-pointed curved star styling */
+.curved-corner-star {
+  display: flex;
+  width: 100%;
+  height: 50%;
+}
+
+#curved-corner-topleft,
+#curved-corner-topright,
+#curved-corner-bottomleft,
+#curved-corner-bottomright {
+  width: 50%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+#curved-corner-topleft::before,
+#curved-corner-topright::before,
+#curved-corner-bottomleft::before,
+#curved-corner-bottomright::before {
+  content: "";
+  display: block;
+  width: 200%;
+  height: 200%;
+  position: absolute;
+  border-radius: 50%;
+}
+
+/* Concave corner shadow color matches the glowing star color (yellow/white) */
+#curved-corner-topleft::before {
+  top: 0;
+  left: 0;
+  box-shadow: -16px -16px 0 0 #fff;
+}
+
+#curved-corner-topright::before {
+  top: 0;
+  right: 0;
+  box-shadow: 16px -16px 0 0 #fff;
+}
+
+#curved-corner-bottomleft::before {
+  bottom: 0;
+  left: 0;
+  box-shadow: -16px 16px 0 0 #fff;
+}
+
+#curved-corner-bottomright::before {
+  bottom: 0;
+  right: 0;
+  box-shadow: 16px 16px 0 0 #fff;
+}

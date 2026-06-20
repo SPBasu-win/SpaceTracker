@@ -1,0 +1,70 @@
+/* MetricsRibbon.css */
+
+.mr-ribbon {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 20px;
+  height: 48px;
+  gap: 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+}
+
+.mr-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 16px;
+  position: relative;
+}
+
+.mr-value {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.mr-unit {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.6;
+  margin-left: 2px;
+}
+
+.mr-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.mr-divider {
+  position: absolute;
+  right: 0;
+  top: 20%;
+  height: 60%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 640px) {
+  .mr-ribbon {
+    width: calc(100vw - 32px);
+    border-radius: 12px;
+    height: 52px;
+    justify-content: space-around;
+  }
+  .mr-metric { padding: 0 8px; }
+  .mr-value { font-size: 14px; }
+}

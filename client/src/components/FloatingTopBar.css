@@ -1,0 +1,174 @@
+/* FloatingTopBar.css */
+
+.ftb-wrapper {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  width: min(700px, calc(100vw - 120px));
+  pointer-events: none;
+}
+
+.ftb-bar {
+  display: flex;
+  align-items: center;
+  height: 52px;
+  border-radius: 999px;
+  padding: 0 8px 0 16px;
+  gap: 12px;
+  pointer-events: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(76, 201, 240, 0.06);
+}
+
+/* Left */
+.ftb-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.ftb-logo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ftb-logo-text {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.ftb-live-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--success);
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.ftb-live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--success);
+  animation: ftb-pulse 2s infinite;
+}
+
+@keyframes ftb-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.6; transform: scale(0.8); }
+}
+
+/* Center search */
+.ftb-search-trigger {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 999px;
+  padding: 7px 14px;
+  cursor: pointer;
+  min-height: unset;
+  color: var(--text-muted);
+  font-size: 13px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.ftb-search-trigger:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(76, 201, 240, 0.2);
+  color: var(--text-secondary);
+}
+
+.ftb-search-placeholder {
+  flex: 1;
+  text-align: left;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ftb-search-kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: monospace;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Right */
+.ftb-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.ftb-action-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  border-radius: 50%;
+  position: relative;
+}
+
+.ftb-action-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.ftb-notif-btn { position: relative; }
+
+.ftb-notif-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--bg);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .ftb-wrapper {
+    width: calc(100vw - 32px);
+    top: 12px;
+  }
+  .ftb-search-placeholder { display: none; }
+  .ftb-live-badge { display: none; }
+}

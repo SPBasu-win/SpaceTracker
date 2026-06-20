@@ -1,6 +1,8 @@
 import { prisma } from "../lib/prisma.js";
 import { deg2rad, normalizeLongitude, rad2deg, satellite } from "../lib/satellite.js";
-import { getLatestTleByCatalogNumber } from "./tle.service.js";
+import { getLatestTleByCatalogNumber, getClosestTleByCatalogNumber } from "./tle.service.js";
+import * as astronomyService from "./astronomy.service.js";
+const trackCache = new Map();
 export async function listAssets(filters) {
     return prisma.orbitalAsset.findMany({
         where: {
@@ -18,28 +20,45 @@ export async function getAssetByCatalogNumber(catalogNumber) {
         throw new Error("Satellite not found");
     return asset;
 }
-export async function getCurrentPosition(catalogNumber, at = new Date()) {
-    const tle = await getLatestTleByCatalogNumber(catalogNumber);
-    if (!tle)
+export async function getCurrentPosition(catalogNumber, at = new Date(), isHistorical = false) {
+    const tleRes = isHistorical
+        ? await getClosestTleByCatalogNumber(catalogNumber, at)
+        : await getLatestTleByCatalogNumber(catalogNumber);
+    if (!tleRes)
         throw new Error("No TLE available");
-    const { satrec, position, velocity } = propagateTle(tle.line1, tle.line2, at);
+    const line1 = 'line1' in tleRes ? tleRes.line1 : tleRes.elementLine1;
+    const line2 = 'line2' in tleRes ? tleRes.line2 : tleRes.elementLine2;
+    const { satrec, position, velocity } = propagateTle(line1, line2, at);
     const gmst = satellite.gstime(at);
     const geo = satellite.eciToGeodetic(position, gmst);
     const velocityKmps = magnitude(velocity);
     return {
-        catalogNumber: tle.catalogNumber,
-        name: tle.name,
+        catalogNumber: tleRes.catalogNumber,
+        name: tleRes.name,
         latitude: satellite.degreesLat(geo.latitude),
         longitude: normalizeLongitude(satellite.degreesLong(geo.longitude)),
         altitudeKm: geo.height,
         velocityKmps,
         inclinationDeg: rad2deg(satrec.inclo),
         timestamp: at.toISOString(),
+        // Add confidence scoring details for history UI
+        ...(isHistorical ? {
+            confidence: tleRes.confidence,
+            dataAgeHours: tleRes.dataAgeHours,
+            source: tleRes.source,
+            tleEpoch: tleRes.epochTimestamp.toISOString(),
+        } : {
+            tleEpoch: tleRes.epochTimestamp.toISOString(),
+        })
     };
 }
-export async function getGlobeAssets(limit = 25_000, at = new Date()) {
+export async function getGlobeAssets(limit = 25_000, at = new Date(), isHistorical = false, catalogNumbers) {
     const assets = await prisma.orbitalAsset.findMany({
-        where: { orbitalEpoch: { not: null } },
+        where: {
+            orbitalEpoch: { not: null },
+            launchDate: isHistorical ? { lte: at } : undefined,
+            catalogNumber: catalogNumbers && catalogNumbers.length > 0 ? { in: catalogNumbers } : undefined,
+        },
         select: {
             catalogNumber: true,
             displayName: true,
@@ -48,8 +67,6 @@ export async function getGlobeAssets(limit = 25_000, at = new Date()) {
             originCountry: true,
             updatedAt: true,
             elementArchive: {
-                orderBy: { epochTimestamp: "desc" },
-                take: 1,
                 select: { elementLine1: true, elementLine2: true, epochTimestamp: true },
             },
         },
@@ -57,10 +74,41 @@ export async function getGlobeAssets(limit = 25_000, at = new Date()) {
         take: Math.min(Math.max(limit, 1), 25_000),
     });
     const gmst = satellite.gstime(at);
+    const targetTime = at.getTime();
+    const maxGapMs = 14 * 24 * 60 * 60 * 1000; // 14 days
     return {
         timestamp: at.toISOString(),
         assets: assets.flatMap((asset) => {
-            const tle = asset.elementArchive[0];
+            let tle = null;
+            let dataAgeHours = 0;
+            let confidence = "INVALID";
+            if (isHistorical) {
+                let minDiff = Infinity;
+                for (const archive of asset.elementArchive) {
+                    const diff = Math.abs(archive.epochTimestamp.getTime() - targetTime);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        tle = archive;
+                    }
+                }
+                if (!tle || minDiff > maxGapMs) {
+                    return []; // Skip: TLE older than 14 days (INVALID confidence)
+                }
+                dataAgeHours = minDiff / 3_600_000;
+                if (dataAgeHours <= 24) {
+                    confidence = "HIGH";
+                }
+                else if (dataAgeHours <= 7 * 24) {
+                    confidence = "MEDIUM";
+                }
+                else {
+                    confidence = "LOW";
+                }
+            }
+            else {
+                // Retrieve the latest TLE
+                tle = [...asset.elementArchive].sort((a, b) => b.epochTimestamp.getTime() - a.epochTimestamp.getTime())[0];
+            }
             if (!tle)
                 return [];
             try {
@@ -90,6 +138,7 @@ export async function getGlobeAssets(limit = 25_000, at = new Date()) {
                         velocityEcf,
                         updatedAt: asset.updatedAt.toISOString(),
                         tleEpoch: tle.epochTimestamp.toISOString(),
+                        ...(isHistorical ? { confidence, dataAgeHours: Math.round(dataAgeHours * 100) / 100 } : {}),
                     }];
             }
             catch {
@@ -159,6 +208,47 @@ export async function getOverheadAssets(observer) {
         }
     }
     return visible.sort((a, b) => b.elevation - a.elevation);
+}
+export async function getOrbitTrack(catalogNumber, minutesAhead = 95, at = new Date(), isHistorical = false) {
+    const roundedTimestamp = Math.floor(at.getTime() / 30000) * 30000;
+    const cacheKey = `${catalogNumber}_${roundedTimestamp}_${minutesAhead}`;
+    if (isHistorical && trackCache.has(cacheKey)) {
+        const cached = trackCache.get(cacheKey);
+        if (Date.now() - cached.cachedAt < 5 * 60 * 1000) {
+            return cached.points;
+        }
+    }
+    const tle = isHistorical
+        ? await getClosestTleByCatalogNumber(catalogNumber, at)
+        : await getLatestTleByCatalogNumber(catalogNumber);
+    if (!tle)
+        throw new Error("No TLE available");
+    const line1 = 'line1' in tle ? tle.line1 : tle.elementLine1;
+    const line2 = 'line2' in tle ? tle.line2 : tle.elementLine2;
+    const points = [];
+    const startMs = at.getTime();
+    const stepMs = 30_000;
+    const steps = Math.ceil((minutesAhead * 60_000) / stepMs);
+    for (let i = 0; i <= steps; i++) {
+        const time = new Date(startMs + i * stepMs);
+        try {
+            const { position } = propagateTle(line1, line2, time);
+            const gmst = satellite.gstime(time);
+            const geo = satellite.eciToGeodetic(position, gmst);
+            points.push({
+                latitude: satellite.degreesLat(geo.latitude),
+                longitude: normalizeLongitude(satellite.degreesLong(geo.longitude)),
+                altitudeKm: geo.height,
+            });
+        }
+        catch {
+            continue;
+        }
+    }
+    if (isHistorical) {
+        trackCache.set(cacheKey, { points, cachedAt: Date.now() });
+    }
+    return points;
 }
 export async function predictPasses(catalogNumber, observer, hoursAhead) {
     const tle = await getLatestTleByCatalogNumber(catalogNumber);
@@ -274,4 +364,102 @@ function normalizeDegrees(value) {
 function directionFromAzimuth(start, end) {
     const delta = normalizeLongitude(end - start);
     return delta >= 0 ? "ascending" : "descending";
+}
+export async function getHistoryEvents(at, observer) {
+    const startOfDay = new Date(at);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    const endOfDay = new Date(at);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+    // 1. Launches / Introductions
+    const introductions = await prisma.orbitalAsset.findMany({
+        where: {
+            launchDate: {
+                gte: startOfDay,
+                lte: endOfDay,
+            },
+        },
+        select: {
+            catalogNumber: true,
+            displayName: true,
+            launchDate: true,
+            originCountry: true,
+            assetClass: true,
+        },
+    });
+    // 2. Observations
+    const observations = await prisma.observationLog.findMany({
+        where: {
+            observationTime: {
+                gte: startOfDay,
+                lte: endOfDay,
+            },
+        },
+        include: {
+            asset: {
+                select: {
+                    displayName: true,
+                    catalogNumber: true,
+                },
+            },
+        },
+    });
+    // 3. Visibility windows
+    const visibilityWindows = await prisma.visibilityWindow.findMany({
+        where: {
+            acquisitionTime: {
+                gte: startOfDay,
+                lte: endOfDay,
+            },
+        },
+        include: {
+            asset: {
+                select: {
+                    displayName: true,
+                    catalogNumber: true,
+                },
+            },
+        },
+    });
+    // 4. Astronomical events
+    const astroOverhead = astronomyService.getSkyOverhead(observer, at);
+    const moonInfo = astroOverhead.find((b) => b.name === "Moon");
+    const sunInfo = astroOverhead.find((b) => b.name === "Sun");
+    return {
+        historicalAssetIntroductions: introductions.map((i) => ({
+            catalogNumber: i.catalogNumber,
+            displayName: i.displayName,
+            launchDate: i.launchDate?.toISOString(),
+            originCountry: i.originCountry,
+            assetClass: i.assetClass,
+        })),
+        observations: observations.map((o) => ({
+            logId: o.logId,
+            observationTime: o.observationTime.toISOString(),
+            trackingDurationSeconds: o.trackingDurationSeconds,
+            signalQuality: o.signalQuality,
+            remarks: o.remarks,
+            asset: o.asset,
+        })),
+        visibilityWindows: visibilityWindows.map((w) => ({
+            windowId: w.windowId,
+            acquisitionTime: w.acquisitionTime.toISOString(),
+            lossTime: w.lossTime.toISOString(),
+            peakElevation: Number(w.peakElevation),
+            illuminationState: w.illuminationState,
+            visibilityRating: w.visibilityRating,
+            asset: w.asset,
+        })),
+        astronomy: {
+            moonPhase: moonInfo?.phaseName ?? "Unknown",
+            moonPhaseAngle: moonInfo?.phaseAngle ?? 0,
+            moonVisible: moonInfo?.visible ?? false,
+            sunVisible: sunInfo?.visible ?? false,
+            bodies: astroOverhead.map((b) => ({
+                name: b.name,
+                altitude: b.altitude,
+                azimuth: b.azimuth,
+                visible: b.visible,
+            })),
+        },
+    };
 }

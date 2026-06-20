@@ -65,3 +65,48 @@ function parseTleEpoch(line1) {
     const start = Date.UTC(fullYear, 0, 1, 0, 0, 0, 0);
     return new Date(start + (dayOfYear - 1) * 86_400_000);
 }
+export async function getClosestTleByCatalogNumber(catalogNumber, at) {
+    const asset = await prisma.orbitalAsset.findUnique({
+        where: { catalogNumber },
+        include: {
+            elementArchive: true,
+        },
+    });
+    if (!asset || !asset.elementArchive || asset.elementArchive.length === 0) {
+        return null;
+    }
+    const targetMs = at.getTime();
+    let closest = asset.elementArchive[0];
+    let minDiffMs = Math.abs(closest.epochTimestamp.getTime() - targetMs);
+    for (const item of asset.elementArchive) {
+        const diff = Math.abs(item.epochTimestamp.getTime() - targetMs);
+        if (diff < minDiffMs) {
+            minDiffMs = diff;
+            closest = item;
+        }
+    }
+    const dataAgeHours = minDiffMs / 3_600_000;
+    let confidence;
+    if (dataAgeHours <= 24) {
+        confidence = "HIGH";
+    }
+    else if (dataAgeHours <= 7 * 24) {
+        confidence = "MEDIUM";
+    }
+    else if (dataAgeHours <= 14 * 24) {
+        confidence = "LOW";
+    }
+    else {
+        return null; // INVALID (greater than 14 days)
+    }
+    return {
+        catalogNumber: asset.catalogNumber,
+        name: asset.displayName,
+        line1: closest.elementLine1,
+        line2: closest.elementLine2,
+        epochTimestamp: closest.epochTimestamp,
+        confidence,
+        dataAgeHours: Math.round(dataAgeHours * 100) / 100,
+        source: "OrbitalElementsArchive",
+    };
+}

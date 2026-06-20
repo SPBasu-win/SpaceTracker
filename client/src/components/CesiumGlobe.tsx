@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import * as Cesium from 'cesium'
 import { getGlobeAssets, fetchGlobeAsset } from '../api/orbitalApi'
 import { apiClient } from '../api/client'
 import { useGlobeStore } from '../stores/globeStore'
 import { useSkyStore } from '../stores/skyStore'
+import { useHistoryStore } from '../stores/historyStore'
+import { milestones } from '../data/historyMilestones'
 import type { GlobeAsset } from '../types/orbital'
 
 type BillboardMap = Map<number, Cesium.Billboard>
@@ -33,11 +35,15 @@ export function CesiumGlobe() {
   const flyToLocation = useGlobeStore((state) => state.flyToLocation)
   const locationFlyTrigger = useGlobeStore((state) => state.locationFlyTrigger)
   const historyMode = useGlobeStore((state) => state.historyMode)
-  const historyOrbits = useGlobeStore((state) => state.historyOrbits)
   const setPinnedLocation = useGlobeStore((state) => state.setPinnedLocation)
   const viewMode = useSkyStore((state) => state.viewMode)
   const pinEntityRef = useRef<Cesium.Entity | null>(null)
   const orbitTrackRef = useRef<Cesium.Entity | null>(null)
+
+  // History Store Hooks
+  const activeYear = useHistoryStore((s) => s.activeYear)
+  const activeMilestoneId = useHistoryStore((s) => s.activeMilestoneId)
+  const activeFilters = useHistoryStore((s) => s.activeFilters)
 
   const prevSelectedRef = useRef<number | null>(null)
 
@@ -61,7 +67,7 @@ export function CesiumGlobe() {
       baseLayer: false, // We manage layers manually
     })
     viewer.scene.globe.enableLighting = true
-    viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#10253f')
+    viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#060B16')
     viewer.scene.postProcessStages.fxaa.enabled = true
     
     // Reduce camera sensitivity and inertia to stop wild spinning and slow down drag
@@ -282,6 +288,7 @@ export function CesiumGlobe() {
 
     let cancelled = false
     const refresh = async (isInitial = false) => {
+      if (useGlobeStore.getState().historyMode) return
       console.log('[CesiumGlobe] Fetching assets...')
       let simulatedProgress = 0
       let progressInterval: number | undefined
@@ -327,7 +334,11 @@ export function CesiumGlobe() {
     }
 
     refresh(true) // Initial load triggers the UI bar
-    const timer = window.setInterval(() => refresh(false).catch(console.error), 15_000)
+    const timer = window.setInterval(() => {
+      if (!useGlobeStore.getState().historyMode) {
+        refresh(false).catch(console.error)
+      }
+    }, 15_000)
 
     let isSpaceHeld = false
     let isDragging = false
@@ -433,8 +444,15 @@ export function CesiumGlobe() {
 
     if (!selected) return
 
+    const params: any = {}
+    if (historyMode) {
+      params.isHistorical = true
+      params.timestamp = new Date(activeYear, 0, 1).toISOString()
+    }
+
     apiClient.get<{ latitude: number; longitude: number; altitudeKm: number }[]>(
-      `/assets/${selected.catalogNumber}/track`
+      `/assets/${selected.catalogNumber}/track`,
+      { params }
     ).then(({ data: pts }) => {
       if (!pts.length || viewer.isDestroyed()) return
 
@@ -453,14 +471,14 @@ export function CesiumGlobe() {
 
       // Draw all segments as one entity with multiple polylines via a datasource hack:
       // Use the first segment as the main entity, add siblings for the rest
-      const color = Cesium.Color.fromCssColorString('#7aa2f7').withAlpha(0.65)
+      const color = Cesium.Color.fromCssColorString('#4CC9F0').withAlpha(0.55)
       const dashPattern = 65280 // dashed
 
       segments.forEach((seg, idx) => {
         const entity = viewer.entities.add({
           polyline: {
             positions: seg,
-            width: 1.8,
+            width: 2.0,
             material: new Cesium.PolylineDashMaterialProperty({
               color,
               dashPattern,
@@ -471,7 +489,7 @@ export function CesiumGlobe() {
         if (idx === 0) orbitTrackRef.current = entity
       })
     }).catch(() => {/* silently ignore */})
-  }, [selected])
+  }, [selected, activeYear, historyMode])
 
   useEffect(() => {
     const viewer = viewerRef.current
@@ -614,37 +632,116 @@ export function CesiumGlobe() {
     })
   }, [locationFlyTrigger, flyToLocation])
 
-  // Project Zenith History mode: hide the live satellite swarm so historic
-  // "ghost orbit" rings read clearly against the globe.
-  useEffect(() => {
-    if (billboardsRef.current) billboardsRef.current.show = !historyMode
-  }, [historyMode])
+  // Storytelling Mode Hooks
 
-  // Render representative historic orbits as tilted ghost rings.
+  const currentMilestone = useMemo(() => {
+    return milestones.find((m) => m.id === activeMilestoneId) || null
+  }, [activeMilestoneId])
+
+  // 1. Camera Fly-To when activeMilestoneId changes
   useEffect(() => {
     const viewer = viewerRef.current
-    if (!viewer) return
+    if (!viewer || !historyMode || !currentMilestone) return
 
-    // Clear any previously drawn ghost orbits.
+    viewer.trackedEntity = undefined
+
+    const { latitude, longitude, altitude } = currentMilestone.focusCoordinates
+
+    if (currentMilestone.visualSequence === 'apollo_moon') {
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(longitude, latitude, altitude),
+        orientation: {
+          heading: Cesium.Math.toRadians(0),
+          pitch: Cesium.Math.toRadians(-90),
+          roll: 0
+        },
+        duration: 2.5
+      })
+    } else if (currentMilestone.visualSequence === 'jwst_l2') {
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(longitude, latitude, altitude),
+        orientation: {
+          heading: Cesium.Math.toRadians(45),
+          pitch: Cesium.Math.toRadians(-20),
+          roll: 0
+        },
+        duration: 3.0
+      })
+    } else {
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(longitude, latitude, altitude),
+        orientation: {
+          heading: Cesium.Math.toRadians(0),
+          pitch: Cesium.Math.toRadians(-55),
+          roll: 0
+        },
+        duration: 2.0
+      })
+    }
+  }, [activeMilestoneId, historyMode, currentMilestone])
+
+  // 2. Orbital Growth & Visual Density rendering
+  useEffect(() => {
+    const viewer = viewerRef.current
+    if (!viewer || !historyMode || !billboardsRef.current || !billboardMapRef.current) return
+
+    // Clear previous ghost orbits
     for (const e of ghostOrbitsRef.current) viewer.entities.remove(e)
     ghostOrbitsRef.current = []
 
-    for (const orbit of historyOrbits) {
-      // Skip non-LEO/MEO rings (e.g. deep-space L2) that would not read as a ring.
-      if (orbit.altitudeKm > 50_000) continue
-      const positions = buildGhostOrbitPositions(orbit.inclinationDeg, orbit.altitudeKm, orbit.raanDeg ?? 0)
-      const color = Cesium.Color.fromCssColorString(orbit.color).withAlpha(0.85)
+    // Determine current Era
+    let era: 'early' | 'moon_race' | 'station' | 'shuttle' | 'commercial' | 'megaconstellation' = 'early'
+    if (activeYear < 1961) era = 'early'
+    else if (activeYear < 1971) era = 'moon_race'
+    else if (activeYear < 1981) era = 'station'
+    else if (activeYear < 2004) era = 'shuttle'
+    else if (activeYear < 2019) era = 'commercial'
+    else era = 'megaconstellation'
+
+    // 2.1 Draw Ghost Orbits based on active layers and era
+    const presetOrbits = getPresetOrbits(era)
+    for (const o of presetOrbits) {
+      const positions = buildGhostOrbitPositions(o.inclination, o.altitude, o.raan)
+      const color = Cesium.Color.fromCssColorString(o.color).withAlpha(0.6)
       const entity = viewer.entities.add({
         polyline: {
           positions,
           width: 2,
           arcType: Cesium.ArcType.NONE,
-          material: color,
-        },
+          material: color
+        }
       })
       ghostOrbitsRef.current.push(entity)
     }
-  }, [historyOrbits])
+
+    // 2.2 Generate Mock Satellites based on LEO preset density
+    const mockAssets: GlobeAsset[] = []
+    if (activeFilters.has('Orbital Growth')) {
+      const satCount = getPresetSatellitesCount(era)
+      for (let i = 0; i < satCount; i++) {
+        const seedLat = Math.sin(i * 9876.54) * 80
+        const seedLon = Math.cos(i * 1234.56) * 180
+        const seedAlt = 350 + (Math.abs(Math.sin(i * 456.78)) * 800)
+
+        const classes: GlobeAsset['assetClass'][] = ['DEBRIS', 'NAVIGATION', 'COMMUNICATION', 'WEATHER', 'SCIENTIFIC']
+        const assetClass = classes[i % classes.length]
+
+        mockAssets.push({
+          catalogNumber: 90000 + i,
+          name: `Object ${90000 + i}`,
+          assetClass,
+          latitude: seedLat,
+          longitude: seedLon,
+          altitudeKm: seedAlt,
+          velocityKmps: 7.5,
+          updatedAt: new Date().toISOString(),
+          tleEpoch: new Date().toISOString()
+        })
+      }
+    }
+
+    updateBillboards(billboardsRef.current, billboardMapRef.current, mockAssets)
+  }, [activeYear, activeFilters, historyMode])
 
   useEffect(() => {
     if (!billboardMapRef.current) return
@@ -681,15 +778,15 @@ export function CesiumGlobe() {
             top: hoverInfo.y + 15,
             left: hoverInfo.x + 15,
             pointerEvents: 'none',
-            backgroundColor: 'rgba(16, 37, 63, 0.9)',
-            border: '1px solid #3b82f6',
+            backgroundColor: 'rgba(10, 15, 28, 0.95)',
+            border: '1px solid rgba(76, 201, 240, 0.3)',
             color: 'white',
-            padding: '8px 12px',
-            borderRadius: '6px',
-            fontSize: '14px',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            padding: '8px 14px',
+            borderRadius: '10px',
+            fontSize: '13px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(76,201,240,0.08)',
             zIndex: 50,
-            backdropFilter: 'blur(4px)',
+            backdropFilter: 'blur(16px)',
             whiteSpace: 'nowrap'
           }}
         >
@@ -701,22 +798,24 @@ export function CesiumGlobe() {
   )
 }
 
-const CIRCLE_SVG = `data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><circle cx="64" cy="64" r="56" fill="white" stroke="black" stroke-width="6"/></svg>')}`
-const SELECTED_CIRCLE_SVG = `data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><defs><filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="8" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter></defs><circle cx="64" cy="64" r="48" fill="white" stroke="white" stroke-width="4" filter="url(#glow)"/></svg>')}`
+// Premium satellite marker SVGs
+const CIRCLE_SVG = `data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><circle cx="32" cy="32" r="10" fill="white"/></svg>')}`
+
+const SELECTED_CIRCLE_SVG = `data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><defs><radialGradient id="g" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#4CC9F0" stop-opacity="1"/><stop offset="100%" stop-color="#4361EE" stop-opacity="0.6"/></radialGradient><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter></defs><circle cx="64" cy="64" r="24" fill="url(#g)" filter="url(#glow)"/><circle cx="64" cy="64" r="18" fill="#4CC9F0" opacity="0.9"/><circle cx="64" cy="64" r="34" fill="none" stroke="#4CC9F0" stroke-width="2" opacity="0.5"/><circle cx="64" cy="64" r="46" fill="none" stroke="#4CC9F0" stroke-width="1" opacity="0.25"/></svg>')}`
 
 function applyBillboardStyle(billboard: Cesium.Billboard, asset: GlobeAsset, filterCategory: string | null, isSelected: boolean) {
   if (isSelected) {
-    billboard.color = Cesium.Color.LIGHTGREEN
+    billboard.color = Cesium.Color.WHITE
     billboard.image = SELECTED_CIRCLE_SVG
-    billboard.scaleByDistance = new Cesium.NearFarScalar(1.0e5, 0.3 * 1.5, 8.0e6, 0.025 * 1.5)
+    billboard.scaleByDistance = new Cesium.NearFarScalar(1.0e5, 0.4 * 1.5, 8.0e6, 0.035 * 1.5)
   } else {
     billboard.image = CIRCLE_SVG
-    billboard.scaleByDistance = new Cesium.NearFarScalar(1.0e5, 0.3, 8.0e6, 0.025)
+    billboard.scaleByDistance = new Cesium.NearFarScalar(1.0e5, 0.4, 8.0e6, 0.035)
     if (filterCategory === null || asset.assetClass === filterCategory || asset.assetClass.includes(filterCategory)) {
       billboard.color = colorForClass(asset.assetClass)
     } else {
       const dimmedColor = colorForClass(asset.assetClass).clone()
-      dimmedColor.alpha = 0.1
+      dimmedColor.alpha = 0.08
       billboard.color = dimmedColor
     }
   }
@@ -764,10 +863,13 @@ function updateBillboards(billboards: Cesium.BillboardCollection, billboardMap: 
 }
 
 function colorForClass(assetClass: GlobeAsset['assetClass']) {
-  if (assetClass === 'DEBRIS') return Cesium.Color.SALMON
-  if (assetClass === 'NAVIGATION') return Cesium.Color.LIME
-  if (assetClass === 'COMMUNICATION') return Cesium.Color.CYAN
-  if (assetClass === 'WEATHER' || assetClass === 'EARTH_OBSERVATION') return Cesium.Color.GOLD
+  if (assetClass === 'DEBRIS')           return Cesium.Color.fromCssColorString('#F87171')  // Red
+  if (assetClass === 'NAVIGATION')       return Cesium.Color.fromCssColorString('#4ADE80')  // Green
+  if (assetClass === 'COMMUNICATION')    return Cesium.Color.fromCssColorString('#4CC9F0')  // Cyan accent
+  if (assetClass === 'WEATHER' || assetClass === 'EARTH_OBSERVATION') return Cesium.Color.fromCssColorString('#F59E0B')  // Amber
+  if (assetClass === 'MILITARY')         return Cesium.Color.fromCssColorString('#F72585')  // Pink
+  if (assetClass === 'CREWED')           return Cesium.Color.fromCssColorString('#A78BFA')  // Purple
+  if (assetClass === 'SCIENTIFIC')       return Cesium.Color.fromCssColorString('#818CF8')  // Indigo
   return Cesium.Color.WHITE
 }
 
@@ -797,4 +899,50 @@ function buildGhostOrbitPositions(inclinationDeg: number, altitudeKm: number, ra
     positions.push(new Cesium.Cartesian3(x2, y2, z1))
   }
   return positions
+}
+
+function getPresetOrbits(era: string): { inclination: number; altitude: number; color: string; raan: number }[] {
+  const list = []
+  if (era === 'early') {
+    list.push({ inclination: 65.1, altitude: 500, color: '#4cc9f0', raan: 0 })
+  } else if (era === 'moon_race') {
+    list.push({ inclination: 65.1, altitude: 500, color: '#4cc9f0', raan: 0 })
+    list.push({ inclination: 64.9, altitude: 300, color: '#ff7ad9', raan: 60 })
+    list.push({ inclination: 32.5, altitude: 300, color: '#ffd166', raan: 120 })
+  } else if (era === 'station') {
+    list.push({ inclination: 65.1, altitude: 500, color: '#4cc9f0', raan: 0 })
+    list.push({ inclination: 51.6, altitude: 300, color: '#ffd166', raan: 90 })
+    list.push({ inclination: 50.0, altitude: 435, color: '#ff7ad9', raan: 220 })
+  } else if (era === 'shuttle') {
+    list.push({ inclination: 28.5, altitude: 540, color: '#4cc9f0', raan: 40 })
+    list.push({ inclination: 51.6, altitude: 420, color: '#9ae66e', raan: 180 })
+    for (let i = 0; i < 6; i++) {
+      list.push({ inclination: 30 + i * 15, altitude: 400 + i * 100, color: 'rgba(255,255,255,0.4)', raan: i * 60 })
+    }
+  } else if (era === 'commercial') {
+    list.push({ inclination: 28.5, altitude: 540, color: '#4cc9f0', raan: 40 })
+    list.push({ inclination: 51.6, altitude: 420, color: '#9ae66e', raan: 180 })
+    for (let i = 0; i < 15; i++) {
+      list.push({ inclination: 20 + i * 8, altitude: 350 + i * 50, color: 'rgba(255,255,255,0.3)', raan: i * 24 })
+    }
+  } else if (era === 'megaconstellation') {
+    list.push({ inclination: 28.5, altitude: 540, color: '#4cc9f0', raan: 40 })
+    list.push({ inclination: 51.6, altitude: 420, color: '#9ae66e', raan: 180 })
+    for (let i = 0; i < 12; i++) {
+      list.push({ inclination: 53, altitude: 550, color: 'rgba(76,201,240,0.5)', raan: i * 30 })
+    }
+    for (let i = 0; i < 20; i++) {
+      list.push({ inclination: 10 + i * 4, altitude: 400 + i * 40, color: 'rgba(255,255,255,0.25)', raan: i * 18 })
+    }
+  }
+  return list
+}
+
+function getPresetSatellitesCount(era: string): number {
+  if (era === 'early') return 3
+  if (era === 'moon_race') return 12
+  if (era === 'station') return 40
+  if (era === 'shuttle') return 120
+  if (era === 'commercial') return 300
+  return 900
 }
